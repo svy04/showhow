@@ -13,7 +13,7 @@
 - **Cuts per audience.** Mark a section as excluded and it disappears from every export.
 - **Screenshots never leave the machine.** No code in this file sends anything anywhere. It works offline (auto-titles are the one exception — see below).
 - **Drafts the step titles.** It reads the text inside the changed region and fills in a title like "다음 누르기" (press Next). Measured on 64 common buttons: **44 correct**, 10 wrong, 10 blank. The reading happens on your machine.
-- **Ships with 357 passing tests.** 227 of them run in a real browser, and 10 run against a real screen-share stream with nothing stubbed.
+- **Ships with 445 passing tests.** 296 of them run in a real browser, and 10 run against a real screen-share stream with nothing stubbed.
 
 ## Try it in 30 seconds
 
@@ -69,7 +69,13 @@ Turn on **제목 자동 작성** (auto-title) and it reads the text inside the c
 
 Run `node tests/검사_제목.mjs` to measure it again; the suite fails if the number drops.
 
-Per step: draw boxes, arrows, numbered badges and text labels in five colours and three weights; blur what must be hidden; crop; erase a single mark; merge, split or duplicate; drag the numbered circle to reorder. Ctrl+Z undoes.
+Per step: draw boxes, arrows, numbered badges and text labels in five colours and three weights; blur what must be hidden; crop; erase a single mark; merge, split or duplicate; drag the numbered circle to reorder. Ctrl+Z undoes, Ctrl+Shift+Z redoes.
+
+Across steps:
+
+- **Select many at once.** Click a step number to select it, Shift-click to take the whole range, then delete them together or wrap them in a section.
+- **Find and replace.** <kbd>Ctrl</kbd>+<kbd>F</kbd> searches titles and descriptions; the word you found can be replaced everywhere in one go. When a term changes you do not hand-edit sixty steps. (Text baked into screenshots is not touched, and it says so.)
+- **Add or swap a screenshot.** Drop an image file onto the window and it lands in place; a screenshot that came out wrong can be swapped for another.
 
 ![Annotating](docs/6_표시.png)
 
@@ -85,6 +91,9 @@ Per step: draw boxes, arrows, numbered badges and text labels in five colours an
 | One HTML file | sending something that opens on double-click, no software needed |
 | Raw images | pasting the screenshots into another document |
 | Markdown | moving it into a wiki, GitHub or Notion |
+| Preview | looking at it with the recipient's eyes before you send it (opens in a new tab) |
+
+Exported files carry the date — `Filing expenses_2026-08-21.pptx`. Once your downloads folder starts appending `(1)` and `(2)`, nobody can tell which one is current.
 
 The `.pptx` and `.docx` are written from scratch — ZIP container and OOXML parts, no library. The tests parse the generated XML to confirm it is well formed. PDF goes through browser printing, so Korean text stays selectable and searchable rather than becoming an image.
 
@@ -102,11 +111,16 @@ Manuals are kept in a list. Open one, continue it, or duplicate it and edit the 
 
 | What | Where | Until |
 |---|---|---|
-| the document you are editing | browser storage | you clear browser data |
-| your list of manuals | browser IndexedDB | the same |
+| the master copy, screenshots included | browser IndexedDB | you clear browser data |
+| the text without screenshots | small browser storage | the same — text survives if IndexedDB goes bad |
+| the last five earlier versions | browser IndexedDB | one every ten minutes; the sixth pushes out the oldest |
 | saved work files | a folder you chose | you delete them |
 
-A banner appears when browser storage fills up. Export a work file and you are safe. Browser storage is not a backup.
+Screenshots never go into the small storage, so no amount of them can fill it up and block a save.
+
+If an edit went badly wrong, the earlier versions listed under **매뉴얼 목록** (the manual list) take you back further than undo reaches.
+
+Everything lives inside this one browser. Change machines or clear the browser and it goes with it. **매뉴얼 목록 → 전부 파일 하나로** packs every manual into a single file; **파일에서 전부 가져오기** unpacks it on the other side. Colliding ids are never overwritten — the incoming copy is placed beside the existing one.
 
 ## Six things to know
 
@@ -122,14 +136,14 @@ A banner appears when browser storage fills up. Export a work file and you are s
 ```bash
 git clone https://github.com/svy04/showhow.git
 cd showhow
-node tests/검사_전체.mjs        # 66 tests, no browser needed
+node tests/검사_전체.mjs        # 75 tests, no browser needed
 
 npm i -D playwright             # for the browser tests
 npx playwright install msedge
-node tests/검사_전부.mjs        # all 357
+node tests/검사_전부.mjs        # all 445
 ```
 
-`tests/검사_기능표.mjs` checks 26 features found in commercial tools against this source file, so the parity claim is verified by the file rather than by memory.
+`tests/검사_기능표.mjs` checks 34 features found in commercial tools against this source file, so the parity claim is verified by the file rather than by memory. 14 of them are ones the commercial tools were confirmed to charge for; for 13 the price could not be confirmed, and the test says so rather than counting them in our favour.
 
 `tests/검사_요청대조.mjs` checks the seven things the original requester asked for — plus the two she gave up on as "probably too hard".
 
