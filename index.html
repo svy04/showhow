@@ -55,6 +55,12 @@
     background: none; max-width: 30ch;
   }
   #top .hint { color: var(--ink-3); font-size: 14px; }
+  /* 아직 채울 것이 남았다는 신호. 경고가 아니라 다음 할 일이라 앰버 한 계단 아래로. */
+  .warnlink {
+    color: var(--amber-2); font-size: 13px; padding: var(--sp-1) var(--sp-2);
+    border-radius: var(--r-9); margin-left: var(--sp-2);
+  }
+  .warnlink:hover { color: var(--amber); background: var(--bg-raise); }
   #top .grow { flex: 1; }
   /* 만들기 · 내보내기 · 파일. 성격이 다르면 사이를 벌린다. 선을 긋지 않는다. */
   #top .tgap { width: var(--sp-5); flex: 0 0 auto; }
@@ -142,7 +148,7 @@
   /* 손질 단추는 그 단계에 손이 갈 때 드러난다.
      늘 보이면 단계 60개에 단추 420개다 — 사진을 읽을 수 없다. */
   .srow {
-    display: flex; gap: var(--sp-3); margin-top: var(--sp-2);
+    display: flex; gap: var(--sp-3); margin-top: var(--sp-2); flex-wrap: wrap;
     opacity: 0; transition: opacity 160ms ease;
   }
   .step:hover .srow, .step:focus-within .srow,
@@ -155,6 +161,10 @@
     content: attr(data-ph); color: var(--ink-3); pointer-events: none;
   }
   #empty { max-width: var(--read); margin: var(--sp-8) auto 0; color: var(--ink-3); text-align: center; }
+  /* 고르는 창이 뜨기 전에 무엇을 골라야 하는지 말해 둔다 — 고른 뒤엔 늦다 */
+  #shootpick { color: var(--ink-3); font-size: 14px; margin-top: var(--sp-3); }
+  #shootpick b { color: var(--ink-2); font-weight: 600; }
+  body:not(.blank) #shootpick { display: none; }
   /* 아직 아무것도 없을 때는 화면 가운데에 모은다. 아래가 텅 비면 물건이 미완성으로 읽힌다. */
   body.blank #stage {
     min-height: calc(100vh - 190px);
@@ -277,7 +287,7 @@
   /* ── 섹션 머리 ── */
   .sec {
     max-width: var(--read); margin: var(--sp-10) auto var(--sp-2);
-    display: flex; align-items: baseline; gap: var(--sp-3);
+    display: flex; align-items: baseline; gap: var(--sp-3); flex-wrap: wrap;
   }
   .sectitle {
     font-size: 15px; font-weight: 600; letter-spacing: .06em;
@@ -341,6 +351,27 @@
   #bottom .grow { flex: 1; }
 
   /* ── 인쇄: 이때만 종이 문서가 된다 ── */
+  /* 화면을 반으로 나눠 쓰면 900px 아래로 내려간다. 그때도 글은 읽혀야 한다. */
+  @media (max-width: 1100px) {
+    #side { width: 148px; padding: var(--sp-4) var(--sp-3); }
+    body.sideon #top, body.sideon #stage, body.sideon #bottom { padding-right: 160px; }
+    .sit img { width: 48px; height: 32px; }
+  }
+  @media (max-width: 880px) {
+    #top { padding: var(--sp-4) var(--sp-5) var(--sp-3); flex-wrap: wrap; }
+    #stage { padding: 0 var(--sp-5) var(--sp-8); }
+    #steps, #empty, .sec { max-width: min(var(--read), 100%); }
+    #side { display: none !important; }          /* 좁으면 옆 목록 대신 탭 제목이 알린다 */
+    body.sideon #top, body.sideon #stage, body.sideon #bottom { padding-right: var(--sp-5); }
+    #shoot { font-size: 17px; padding: 14px 26px; }
+    #outmenu { width: min(300px, calc(100vw - 32px)); }
+  }
+  @media (max-width: 560px) {
+    .step { gap: var(--sp-3); }
+    .stitle { font-size: 18px; }
+    #bottom .hint { display: none; }
+  }
+
   @media print {
     body { background: #fff; color: #111; display: block; }
     #top, #shootwrap, #bottom, .srow, #empty { display: none !important; }
@@ -408,6 +439,7 @@
   <div id="shootwrap">
     <button id="shoot">화면 찍기 시작</button>
     <div id="shootsub">먼저 어떤 화면을 찍을지 한 번만 고르면, 그다음부터는 <b>하던 일만 하면 알아서 담깁니다.</b></div>
+  <div id="shootpick">고르는 창에서는 <b>매뉴얼로 만들 프로그램</b>을 고르세요 — 이 창을 고르면 자기 자신이 찍힙니다.</div>
     <div id="autowrap">
       <button id="autobtn" class="tool on"><span id="autolabel">자동 촬영 켜짐</span></button>
       <button id="titlebtn" class="tool" aria-pressed="false">제목 자동 작성 꺼짐</button>
@@ -588,6 +620,7 @@ function shareEnded() {
   document.body.classList.remove("sideon");
   $("#shoot").textContent = "화면 찍기 시작";
   $("#shootsub").innerHTML = "화면 공유가 끝났습니다. 다시 시작할 수 있습니다.";
+  paintTitle();
   say("화면 공유 종료됨");
 }
 
@@ -634,12 +667,14 @@ function watchStart() {
   WATCH.timer = setInterval(watchTick, 140);
   $("#autolabel").textContent = "자동 촬영 켜짐";
   $("#autobtn").classList.add("on");
+  paintTitle();
 }
 function watchStop() {
   WATCH.on = false;
   clearInterval(WATCH.timer); WATCH.timer = null;
   $("#autolabel").textContent = "자동 촬영 꺼짐";
   $("#autobtn").classList.remove("on");
+  paintTitle();
 }
 /* 되돌리기 창고: 최근 화면을 잠깐 들고 있다가 "아까 그거"를 꺼낸다.
    Dubble Pro가 유료로 파는 기능(영상 되감기)을 같은 목적으로 대체한다.
@@ -863,6 +898,16 @@ function renderSide() {
   $("#side").scrollTop = $("#side").scrollHeight;   // 굴러야 하는 칸은 바깥이다
 }
 
+/* 찍는 동안 사용자는 다른 창에서 일한다. 이 창은 안 본다.
+   탭 제목이 유일하게 보이는 자리라, 담긴 개수를 거기에 적는다. */
+const TITLE0 = document.title;
+function paintTitle() {
+  const n = state.steps.filter(x => !x.sec).length;
+  if (!WATCH.on && !stream) { document.title = TITLE0; return; }
+  const 상태 = state.paused ? "잠시 멈춤" : (WATCH.on ? "담는 중" : "찍기 켜짐");
+  document.title = n + "장 · " + 상태 + " — showhow";
+}
+
 function render() {
   const box = $("#steps");
   box.innerHTML = "";
@@ -870,7 +915,22 @@ function render() {
   document.body.classList.toggle("blank", !state.steps.length);
   const nSteps = state.steps.filter(x => !x.sec).length;
   const nSecs = state.steps.filter(x => x.sec).length;
-  $("#counthint").textContent = nSteps ? nSteps + "단계" + (nSecs ? " · " + nSecs + "섹션" : "") : "";
+  const 빈제목 = state.steps.filter(x => !x.sec && !x.title).length;
+  $("#counthint").innerHTML = nSteps
+    ? esc(nSteps + "단계" + (nSecs ? " · " + nSecs + "섹션" : "")) +
+      (빈제목 ? ' <button id="gonext" class="warnlink">제목 없는 단계 ' + 빈제목 + '</button>' : "")
+    : "";
+  const 가기 = $("#gonext");
+  if (가기) 가기.onclick = () => {
+    const i = state.steps.findIndex(x => !x.sec && !x.title);
+    if (i < 0) return;
+    const el = document.querySelectorAll("#steps .step, #steps .sec")[i];
+    if (!el) return;
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    const t = el.querySelector(".stitle");
+    if (t) setTimeout(() => t.focus(), 320);
+  };
+  paintTitle();
   renderSide();
 
   let n = 0, cur = "";
@@ -2364,6 +2424,7 @@ $("#rewbtn").onclick = openRewind;
 $("#pausebtn2").onclick = () => {
   state.paused = !state.paused;
   $("#pausebtn2").textContent = state.paused ? "다시 시작" : "잠시 멈춤";
+  paintTitle();
   $("#pausebtn2").classList.toggle("on", state.paused);
   say(state.paused ? "멈췄습니다 — 담기지 않습니다" : "다시 담습니다");
 };
