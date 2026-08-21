@@ -25,6 +25,11 @@
     --sp-8: 32px; --sp-10: 48px;            /* 섹션 */
 
     --read: 680px;  /* 17px × 40자 */
+
+    /* 모서리는 세 값만. 값마다 쓰임이 다르다 — 늘리면 그 순간 결정이 사라진다 */
+    --r-1: 4px;    /* 작은 것: 표시·꼬리표 */
+    --r-2: 8px;    /* 면: 사진·패널·단추 */
+    --r-9: 999px;  /* 알약·원 */
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
@@ -51,20 +56,22 @@
   }
   #top .hint { color: var(--ink-3); font-size: 14px; }
   #top .grow { flex: 1; }
+  /* 만들기 · 내보내기 · 파일. 성격이 다르면 사이를 벌린다. 선을 긋지 않는다. */
+  #top .tgap { width: var(--sp-5); flex: 0 0 auto; }
   .tbtn {
     color: var(--ink-2); font-size: 14px; padding: var(--sp-2) var(--sp-3);
-    border-radius: 6px;
+    border-radius: var(--r-2);
   }
   .tbtn:hover { color: var(--ink); background: var(--bg-raise); }
   .menuwrap { position: relative; display: inline-block; }
   #outmenu {
     position: absolute; right: 0; top: calc(100% + var(--sp-1)); z-index: 60;
-    background: var(--bg-raise); border-radius: 8px; padding: var(--sp-2);
+    background: var(--bg-raise); border-radius: var(--r-2); padding: var(--sp-2);
     box-shadow: 0 10px 30px rgba(0,0,0,.55); width: 300px; text-align: left;
   }
   #outmenu button {
     display: block; width: 100%; text-align: left; padding: var(--sp-2) var(--sp-3);
-    border-radius: 6px; color: var(--ink-2);
+    border-radius: var(--r-2); color: var(--ink-2);
   }
   #outmenu button:hover { background: var(--bg); color: var(--ink); }
   #outmenu b { display: block; font-size: 15px; font-weight: 600; color: inherit; }
@@ -75,7 +82,7 @@
   #shootwrap { padding: var(--sp-10) 0; text-align: center; }
   #shoot {
     font-size: 19px; font-weight: 600; color: #171003;
-    background: var(--amber); padding: 16px 34px; border-radius: 10px;
+    background: var(--amber); padding: 16px 34px; border-radius: var(--r-2);
     box-shadow: 0 0 0 0 rgba(240,180,41,.45);
     transition: box-shadow .18s, transform .06s;
   }
@@ -87,7 +94,7 @@
   #autowrap { display: none; justify-content: center; gap: var(--sp-3); margin-top: var(--sp-4); }
   kbd {
     font: 13px/1 ui-monospace, Consolas, monospace; color: var(--ink-2);
-    background: var(--bg-raise); padding: 3px 6px; border-radius: 4px;
+    background: var(--bg-raise); padding: 3px 6px; border-radius: var(--r-1);
   }
 
   /* ── 단계 목록 ── */
@@ -99,41 +106,64 @@
   .step.dropbefore, .sec.dropbefore { box-shadow: 0 -2px 0 0 var(--amber); }
   .step.dropafter,  .sec.dropafter  { box-shadow: 0 2px 0 0 var(--amber); }
   .step + .step { border-top: 1px solid var(--line); }
+  /* 번호는 순서를 알려 줄 뿐이다. 동그라미를 씌우면 제목보다 먼저 읽힌다. */
   .num {
-    flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%;
-    background: var(--bg-raise); color: var(--amber);
-    font: 600 15px/30px ui-monospace, Consolas, monospace; text-align: center;
+    flex: 0 0 auto; width: 24px; height: 28px; border-radius: 0;
+    background: none; color: var(--amber-2);
+    font: 600 13px/28px ui-monospace, Consolas, monospace; text-align: right;
   }
   .body { flex: 1; min-width: 0; }
   .stitle { font-size: 19px; font-weight: 600; padding: 2px 0; }
   .sdesc { color: var(--ink-2); margin-top: var(--sp-2); }
-  .shot { margin-top: var(--sp-3); position: relative; overflow: hidden; border-radius: 6px; }
+  .shot { margin-top: var(--sp-3); position: relative; overflow: hidden; border-radius: var(--r-2); }
   .shot img {
-    width: 100%; display: block; border-radius: 6px; background: var(--bg-sink);
+    width: 100%; display: block; border-radius: var(--r-2); background: var(--bg-sink);
     max-height: 210px; object-fit: cover; object-position: top; cursor: zoom-in;
   }
   .shot.open img { max-height: none; object-fit: contain; cursor: zoom-out; }
   .shot::after {
     content: "누르면 크게"; position: absolute; right: 8px; bottom: 8px;
     font-size: 12px; color: var(--ink-2); background: rgba(10,12,13,.72);
-    padding: 3px 7px; border-radius: 4px; pointer-events: none;
+    padding: var(--sp-1) var(--sp-2); border-radius: var(--r-1); pointer-events: none;
+    opacity: 0; transition: opacity 160ms ease;      /* 늘 떠 있으면 표시를 가린다 */
   }
+  .shot:hover::after, .shot.open::after { opacity: 1; }
   .shot.open::after { content: "누르면 작게"; }
-  .spot {
-    position: absolute; border: 2px solid #ff3b30; border-radius: 3px;
-    pointer-events: none; box-shadow: 0 0 0 2000px rgba(10,12,13,.30);
+  /* 바뀐 자리. 목록에서는 테두리만 — 그늘로 덮으면 사진을 읽을 수 없다.
+     크게 열었을 때만 옅게 덮어 눈을 모은다. */
+  @media (prefers-reduced-motion: reduce) {
+    .srow, .sec button, .shot::after { transition: none; }
   }
-  .srow { display: flex; gap: var(--sp-3); margin-top: var(--sp-2); }
+  .spot {
+    position: absolute; border: 2px solid #ff3b30; border-radius: var(--r-1);
+    pointer-events: none;
+  }
+  .shot.open .spot { box-shadow: 0 0 0 2000px rgba(10,12,13,.34); }
+  /* 손질 단추는 그 단계에 손이 갈 때 드러난다.
+     늘 보이면 단계 60개에 단추 420개다 — 사진을 읽을 수 없다. */
+  .srow {
+    display: flex; gap: var(--sp-3); margin-top: var(--sp-2);
+    opacity: 0; transition: opacity 160ms ease;
+  }
+  .step:hover .srow, .step:focus-within .srow,
+  .sec:hover .srow, .sec:focus-within .srow { opacity: 1; }
+  @media (hover: none) { .srow { opacity: .6; } }   /* 손가락으로 쓰는 기기엔 늘 보인다 */
   .srow button { color: var(--ink-3); font-size: 13px; }
   .srow button:hover { color: var(--ink); }
 
   [contenteditable][data-empty]::before {
     content: attr(data-ph); color: var(--ink-3); pointer-events: none;
   }
-  #empty { max-width: var(--read); margin: 0 auto; color: var(--ink-3); text-align: center; }
+  #empty { max-width: var(--read); margin: var(--sp-8) auto 0; color: var(--ink-3); text-align: center; }
+  /* 아직 아무것도 없을 때는 화면 가운데에 모은다. 아래가 텅 비면 물건이 미완성으로 읽힌다. */
+  body.blank #stage {
+    min-height: calc(100vh - 190px);
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  body.blank #shootwrap { padding-top: 0; }
   #empty .line { margin: 0; }
   #how {
-    list-style: none; margin: var(--sp-10) auto 0; padding: 0;
+    list-style: none; margin: 0 auto; padding: 0;
     max-width: 30rem; text-align: left; counter-reset: how;
   }
   #how li {
@@ -153,14 +183,18 @@
   #formin { max-width: var(--read); margin: 0 auto; padding: var(--sp-10) var(--sp-5) var(--sp-10); }
   #formin h2 { font-size: 21px; font-weight: 600; margin: 0 0 var(--sp-2); }
   #formin .lead { color: var(--ink-2); margin: 0 0 var(--sp-8); }
-  .frow { margin-bottom: var(--sp-5); }
-  .flabel { font-size: 14px; color: var(--ink-3); margin-bottom: var(--sp-1); }
+  /* 라벨과 칸은 붙이고, 묶음 사이는 벌린다. 상자로 감싸면 다섯 개가 상자밭이 된다. */
+  .frow { margin-bottom: var(--sp-8); }
+  .flabel { font-size: 13px; color: var(--ink-3); margin-bottom: var(--sp-1); }
   .fin {
-    background: var(--bg-raise); padding: var(--sp-3) var(--sp-4); border-radius: 7px;
+    background: none; padding: var(--sp-2) 0; border-radius: 0;
+    box-shadow: inset 0 -1px 0 var(--line);       /* 조작할 수 있다는 최소 신호 */
+    transition: box-shadow 160ms ease;
   }
-  .fin:focus-within { box-shadow: inset 0 0 0 1px var(--amber-2); }
+  .fin:focus-within { box-shadow: inset 0 -2px 0 var(--amber-2); }
+  @media (prefers-reduced-motion: reduce) { .fin { transition: none; } }
   #formbtns { display: flex; gap: var(--sp-3); margin-top: var(--sp-8); flex-wrap: wrap; }
-  #formbtns button { color: var(--ink-2); font-size: 15px; padding: var(--sp-3) var(--sp-5); border-radius: 7px; background: var(--bg-raise); }
+  #formbtns button { color: var(--ink-2); font-size: 15px; padding: var(--sp-3) var(--sp-5); border-radius: var(--r-2); background: var(--bg-raise); }
   #formbtns button:hover { color: var(--ink); }
   #formbtns .go { background: var(--amber); color: #171003; font-weight: 600; }
   #formlist { margin-top: var(--sp-8); }
@@ -170,7 +204,7 @@
   #boxin h2 { font-size: 21px; font-weight: 600; margin: 0 0 var(--sp-2); }
   #boxin .lead { color: var(--ink-2); margin: 0 0 var(--sp-8); }
   #boxbtns { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
-  #boxbtns button { color: var(--ink-2); font-size: 15px; padding: var(--sp-3) var(--sp-5); border-radius: 7px; background: var(--bg-raise); }
+  #boxbtns button { color: var(--ink-2); font-size: 15px; padding: var(--sp-3) var(--sp-5); border-radius: var(--r-2); background: var(--bg-raise); }
   #boxbtns button:hover { color: var(--ink); }
   #boxbtns .go { background: var(--amber); color: #171003; font-weight: 600; }
   #boxlist { margin-top: var(--sp-8); }
@@ -179,7 +213,7 @@
   .boxrow .nm { font-size: 17px; color: var(--ink); }
   .boxrow .meta { color: var(--ink-3); font-size: 13px; }
   .boxrow .grow { flex: 1; }
-  .boxrow button { color: var(--ink-3); font-size: 14px; padding: var(--sp-1) var(--sp-2); border-radius: 5px; }
+  .boxrow button { color: var(--ink-3); font-size: 14px; padding: var(--sp-1) var(--sp-2); border-radius: var(--r-1); }
   .boxrow button:hover { color: var(--ink); background: var(--bg-raise); }
   .boxrow.now .nm { color: var(--amber); }
   .fitem {
@@ -202,22 +236,24 @@
   #rewgrid { flex: 1; overflow: auto; padding: var(--sp-5) var(--sp-8) var(--sp-8);
              display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: var(--sp-4); align-content: start; }
   .rewit { cursor: pointer; }
-  .rewit img { width: 100%; display: block; border-radius: 6px; background: var(--bg-raise); }
+  .rewit img { width: 100%; display: block; border-radius: var(--r-2); background: var(--bg-raise); }
   .rewit .ago { color: var(--ink-3); font-size: 13px; margin-top: var(--sp-1); }
   .rewit:hover img { box-shadow: 0 0 0 2px var(--amber); }
   .rewit.picked img { box-shadow: 0 0 0 2px var(--amber); }
   #rewempty { color: var(--ink-3); padding: var(--sp-10) 0; text-align: center; grid-column: 1 / -1; }
 
   /* ── 옆 목록: 찍히는 게 바로 보인다 ── */
+  /* 담기는 대로 쌓이는 열. 판때기를 깔면 그 자체가 상자가 된다 —
+     본문이 이미 오른쪽으로 물러나 있어 겹치지 않는다. */
   #side {
     position: fixed; right: 0; top: 0; bottom: 0; width: 190px; display: none;
-    background: var(--bg-raise); padding: var(--sp-4) var(--sp-3);
-    overflow: auto; z-index: 20;
+    padding: var(--sp-5) var(--sp-4); overflow: auto; z-index: 20;
+    background: linear-gradient(to right, rgba(15,17,19,0), var(--bg-sink) 24px);
   }
   #side.on { display: block; }
-  #side .h { color: var(--ink-3); font-size: 13px; margin-bottom: var(--sp-3); }
+  #side .h { color: var(--ink-3); font-size: 12px; letter-spacing: .06em; margin-bottom: var(--sp-4); }
   .sit { display: flex; gap: var(--sp-2); align-items: center; padding: var(--sp-1) 0; cursor: pointer; }
-  .sit img { width: 62px; height: 40px; object-fit: cover; object-position: top; border-radius: 3px; background: var(--bg-sink); }
+  .sit img { width: 62px; height: 40px; object-fit: cover; object-position: top; border-radius: var(--r-1); background: var(--bg-sink); }
   .sit .t { font-size: 12px; color: var(--ink-2); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sit.fresh img { box-shadow: 0 0 0 2px var(--amber); }
   .sit .secmark { font-size: 12px; color: var(--amber); font-weight: 600; }
@@ -225,14 +261,14 @@
 
   #spill {
     display: none; position: fixed; left: 50%; bottom: 74px; transform: translateX(-50%);
-    background: #3a2a08; color: #ffe9b8; padding: var(--sp-3) var(--sp-5); border-radius: 8px;
+    background: #3a2a08; color: #ffe9b8; padding: var(--sp-3) var(--sp-5); border-radius: var(--r-2);
     font-size: 14px; max-width: 620px; z-index: 40; line-height: 1.5;
   }
   #spill.on { display: block; }
   #spill b { color: #ffd873; }
   #spill button {
     background: var(--amber); color: #171003; font-weight: 600;
-    padding: 3px 10px; border-radius: 5px; margin: 0 2px;
+    padding: 3px 10px; border-radius: var(--r-1); margin: 0 2px;
   }
 
   #cover { display: none; }
@@ -247,7 +283,12 @@
     font-size: 15px; font-weight: 600; letter-spacing: .06em;
     color: var(--amber); text-transform: none; flex: 1;
   }
-  .sec button { color: var(--ink-3); font-size: 13px; }
+  .sec button {
+    color: var(--ink-3); font-size: 13px;
+    opacity: 0; transition: opacity 160ms ease;
+  }
+  .sec:hover button, .sec:focus-within button { opacity: 1; }
+  @media (hover: none) { .sec button { opacity: .6; } }
   .sec button:hover { color: var(--ink); }
   .sec .off { color: var(--amber-2); }
   .step.hidden, .sec.hidden .sectitle { opacity: .38; }
@@ -262,14 +303,22 @@
     background: var(--bg); box-shadow: 0 1px 0 var(--line);
   }
   #marktop .grow { flex: 1; }
+  /* 그리는 것 · 모양 · 마치기. 성격이 다르면 사이를 벌린다 (선을 긋지 않는다) */
+  #marktop .mgap { width: var(--sp-8); flex: 0 0 auto; }
+  /* 마치는 단추 하나만 채운다 — 중심 동작은 하나다 */
+  #mark-done {
+    background: var(--amber); color: #171003; font-weight: 600;
+    border-radius: var(--r-9); padding: var(--sp-2) var(--sp-5);
+  }
+  #mark-done:hover { background: #ffc53d; color: #171003; }
   .tool {
-    color: var(--ink-2); font-size: 15px; padding: var(--sp-2) var(--sp-4); border-radius: 7px;
+    color: var(--ink-2); font-size: 15px; padding: var(--sp-2) var(--sp-4); border-radius: var(--r-2);
   }
   .tool:hover { color: var(--ink); background: var(--bg-raise); }
   .tool.on { color: #171003; background: var(--amber); font-weight: 600; }
   #markwrap { flex: 1; display: grid; place-items: center; padding: 0 var(--sp-8) var(--sp-5); min-height: 0; }
-  #markcv { max-width: 100%; max-height: 100%; cursor: crosshair; border-radius: 6px; }
-  #markhint { text-align: center; color: var(--ink-3); font-size: 14px; padding-bottom: var(--sp-4); }
+  #markcv { max-width: 100%; max-height: 100%; cursor: crosshair; border-radius: var(--r-2); }
+  #markhint { text-align: center; color: var(--ink-3); font-size: 14px; padding: var(--sp-3) 0 var(--sp-1); }
   .stitle.guess { color: var(--ink-2); }
   .stitle.guess::after {
     content: "짐작"; margin-left: var(--sp-2); font-size: 11px; color: var(--amber-2);
@@ -331,6 +380,7 @@
   <button class="tbtn" id="btn-box">매뉴얼 목록</button>
   <button class="tbtn" id="btn-form">양식</button>
   <button class="tbtn" id="btn-sec">섹션 넣기</button>
+  <span class="tgap"></span>
   <span class="menuwrap">
     <button class="tbtn" id="btn-out" aria-haspopup="true" aria-expanded="false">내보내기</button>
     <div id="outmenu" hidden>
@@ -342,6 +392,7 @@
       <button data-out="md"><b>글과 그림으로</b><i>위키·깃헙·노션에 옮겨 붙일 때</i></button>
     </div>
   </span>
+  <span class="tgap"></span>
   <button class="tbtn" id="btn-save">작업 저장</button>
   <button class="tbtn" id="btn-open">불러오기</button>
 </div>
@@ -365,7 +416,6 @@
     </div>
   </div>
   <div id="empty">
-    <p class="line">아직 단계가 없습니다. 찍으면 여기에 쌓입니다.</p>
     <ol id="how">
       <li><b>고른다</b> 어떤 화면을 담을지 한 번만 정합니다.</li>
       <li><b>그냥 일한다</b> 화면이 바뀔 때마다 알아서 담깁니다. 타이핑도, 단축키도, 창이 뜨는 것도.</li>
@@ -413,9 +463,9 @@
     <div class="frow"><div class="flabel">표지 문구 (문서 제목 아래 한 줄)</div>
       <div class="fin"><input id="f-sub" placeholder="예: 신입 인수인계용 · 2026년판"></div></div>
     <div class="frow"><div class="flabel">머리말 (첫 장 위에 들어갈 안내)</div>
-      <div class="fin"><textarea id="f-intro" rows="3" placeholder="예: 이 문서대로 따라 하면 됩니다. 막히면 담당자에게 물어보세요."></textarea></div></div>
+      <div class="fin"><textarea id="f-intro" rows="2" placeholder="예: 이 문서대로 따라 하면 됩니다. 막히면 담당자에게 물어보세요."></textarea></div></div>
     <div class="frow"><div class="flabel">맺음말 (마지막에 붙는 문구)</div>
-      <div class="fin"><textarea id="f-outro" rows="2" placeholder="예: 문의 · 마케팅팀 내선 000"></textarea></div></div>
+      <div class="fin"><textarea id="f-outro" rows="1" placeholder="예: 문의 · 마케팅팀 내선 000"></textarea></div></div>
 
     <div id="formbtns">
       <button class="go" id="f-apply">이 양식으로 쓰기</button>
@@ -453,15 +503,16 @@
     <button class="tool" data-tool="text">글자</button>
     <button class="tool" data-tool="crop">자르기</button>
     <button class="tool" data-tool="erase">지우개</button>
-    <span class="grow"></span>
+    <span class="mgap"></span>
     <span id="markcolors" role="group" aria-label="색"></span>
     <button class="tool" id="mark-thin" title="선 굵기">굵기 보통</button>
+    <span class="grow"></span>
     <button class="tool" id="mark-undo">되돌리기</button>
     <button class="tool" id="mark-clear">전부 지우기</button>
-    <button class="tool" id="mark-done" style="color:var(--amber)">다 했어요</button>
+    <button class="tool" id="mark-done">다 했어요</button>
   </div>
-  <div id="markwrap"><canvas id="markcv"></canvas></div>
   <div id="markhint">사진 위에서 끌면 그려집니다. 번호는 누른 자리에 붙습니다.</div>
+  <div id="markwrap"><canvas id="markcv"></canvas></div>
 </div>
 
 <input type="file" id="fileinput" accept="application/json" hidden>
@@ -809,13 +860,14 @@ function renderSide() {
     };
     box.appendChild(el);
   });
-  box.scrollTop = box.scrollHeight;
+  $("#side").scrollTop = $("#side").scrollHeight;   // 굴러야 하는 칸은 바깥이다
 }
 
 function render() {
   const box = $("#steps");
   box.innerHTML = "";
   $("#empty").style.display = state.steps.length ? "none" : "block";
+  document.body.classList.toggle("blank", !state.steps.length);
   const nSteps = state.steps.filter(x => !x.sec).length;
   const nSecs = state.steps.filter(x => x.sec).length;
   $("#counthint").textContent = nSteps ? nSteps + "단계" + (nSecs ? " · " + nSecs + "섹션" : "") : "";
