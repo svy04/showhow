@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>찍으면 쓰인다 — 업무 매뉴얼 만들기</title>
+<style>
+  /* 값의 근거: 업무_연애시뮬MVP\규격_화면디자인_v1_2026-08-19.md
+     본문 17px·행간 1.5(1.6 이상 금지)·한 줄 40자 폭·좌측 정렬·keep-all
+     간격 3단(안 4~8 / 사이 12~20 / 섹션 32~48) — 전부 같은 간격 금지
+     색 3계열(배경·본문·앰버), 위계는 같은 색 명도 계단. 상자·테두리로 위계 금지 */
+  :root {
+    --bg:        #0f1113;
+    --bg-raise:  #16191c;
+    --bg-sink:   #0a0c0d;
+    --ink:       #e8ebee;   /* 본문 */
+    --ink-2:     #a8b0b8;   /* 한 계단 아래 */
+    --ink-3:     #6d757d;   /* 두 계단 (라벨·비활성) */
+    --amber:     #f0b429;
+    --amber-2:   #8a6620;
+    --line:      #22262a;   /* 구분은 선이 아니라 면 — 아주 낮은 대비만 */
+
+    --sp-1: 4px;  --sp-2: 8px;              /* 안 */
+    --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; /* 사이 */
+    --sp-8: 32px; --sp-10: 48px;            /* 섹션 */
+
+    --read: 680px;  /* 17px × 40자 */
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 17px/1.5 "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", sans-serif;
+    word-break: keep-all; text-align: left;
+    display: flex; flex-direction: column;
+  }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  input, textarea { font: inherit; color: inherit; background: none; border: 0; width: 100%; }
+  textarea { resize: none; overflow: hidden; }
+  ::placeholder { color: var(--ink-3); }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  /* ── 머리: 하는 일 하나만 크게 ── */
+  #top {
+    display: flex; align-items: baseline; gap: var(--sp-4);
+    padding: var(--sp-5) var(--sp-8) var(--sp-4);
+  }
+  #docname {
+    font-size: 21px; font-weight: 600; letter-spacing: -0.01em;
+    background: none; max-width: 30ch;
+  }
+  #top .hint { color: var(--ink-3); font-size: 14px; }
+  #top .grow { flex: 1; }
+  .tbtn {
+    color: var(--ink-2); font-size: 14px; padding: var(--sp-2) var(--sp-3);
+    border-radius: 6px;
+  }
+  .tbtn:hover { color: var(--ink); background: var(--bg-raise); }
+  .menuwrap { position: relative; display: inline-block; }
+  #outmenu {
+    position: absolute; right: 0; top: calc(100% + var(--sp-1)); z-index: 60;
+    background: var(--bg-raise); border-radius: 8px; padding: var(--sp-2);
+    box-shadow: 0 10px 30px rgba(0,0,0,.55); width: 300px; text-align: left;
+  }
+  #outmenu button {
+    display: block; width: 100%; text-align: left; padding: var(--sp-2) var(--sp-3);
+    border-radius: 6px; color: var(--ink-2);
+  }
+  #outmenu button:hover { background: var(--bg); color: var(--ink); }
+  #outmenu b { display: block; font-size: 15px; font-weight: 600; color: inherit; }
+  #outmenu i { display: block; font-style: normal; font-size: 13px; color: var(--ink-3); margin-top: 2px; }
+
+  /* ── 중심물: 찍기 버튼 ── */
+  #stage { padding: 0 var(--sp-8) var(--sp-8); }
+  #shootwrap { padding: var(--sp-10) 0; text-align: center; }
+  #shoot {
+    font-size: 19px; font-weight: 600; color: #171003;
+    background: var(--amber); padding: 16px 34px; border-radius: 10px;
+    box-shadow: 0 0 0 0 rgba(240,180,41,.45);
+    transition: box-shadow .18s, transform .06s;
+  }
+  #shoot:hover { box-shadow: 0 0 0 6px rgba(240,180,41,.12); }
+  #shoot:active { transform: translateY(1px); }
+  #shoot[disabled] { background: var(--bg-raise); color: var(--ink-3); cursor: default; box-shadow: none; }
+  #shootsub { margin-top: var(--sp-3); color: var(--ink-3); font-size: 14px; }
+  #shootsub b { color: var(--ink-2); font-weight: 600; }
+  #autowrap { display: none; justify-content: center; gap: var(--sp-3); margin-top: var(--sp-4); }
+  kbd {
+    font: 13px/1 ui-monospace, Consolas, monospace; color: var(--ink-2);
+    background: var(--bg-raise); padding: 3px 6px; border-radius: 4px;
+  }
+
+  /* ── 단계 목록 ── */
+  #steps { max-width: var(--read); margin: 0 auto; }
+  .step { display: flex; gap: var(--sp-4); padding: var(--sp-5) 0; }
+  .step + .step { border-top: 1px solid var(--line); }
+  .num {
+    flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%;
+    background: var(--bg-raise); color: var(--amber);
+    font: 600 15px/30px ui-monospace, Consolas, monospace; text-align: center;
+  }
+  .body { flex: 1; min-width: 0; }
+  .stitle { font-size: 19px; font-weight: 600; padding: 2px 0; }
+  .sdesc { color: var(--ink-2); margin-top: var(--sp-2); }
+  .shot { margin-top: var(--sp-3); position: relative; overflow: hidden; border-radius: 6px; }
+  .shot img {
+    width: 100%; display: block; border-radius: 6px; background: var(--bg-sink);
+    max-height: 210px; object-fit: cover; object-position: top; cursor: zoom-in;
+  }
+  .shot.open img { max-height: none; object-fit: contain; cursor: zoom-out; }
+  .shot::after {
+    content: "누르면 크게"; position: absolute; right: 8px; bottom: 8px;
+    font-size: 12px; color: var(--ink-2); background: rgba(10,12,13,.72);
+    padding: 3px 7px; border-radius: 4px; pointer-events: none;
+  }
+  .shot.open::after { content: "누르면 작게"; }
+  .spot {
+    position: absolute; border: 2px solid #ff3b30; border-radius: 3px;
+    pointer-events: none; box-shadow: 0 0 0 2000px rgba(10,12,13,.30);
+  }
+  .srow { display: flex; gap: var(--sp-3); margin-top: var(--sp-2); }
+  .srow button { color: var(--ink-3); font-size: 13px; }
+  .srow button:hover { color: var(--ink); }
+
+  [contenteditable][data-empty]::before {
+    content: attr(data-ph); color: var(--ink-3); pointer-events: none;
+  }
+  #empty { max-width: var(--read); margin: 0 auto; color: var(--ink-3); text-align: center; }
+  #empty .line { margin: 0; }
+  #how {
+    list-style: none; margin: var(--sp-10) auto 0; padding: 0;
+    max-width: 30rem; text-align: left; counter-reset: how;
+  }
+  #how li {
+    counter-increment: how; color: var(--ink-2); padding: var(--sp-3) 0 var(--sp-3) var(--sp-8);
+    position: relative; line-height: 1.5;
+  }
+  #how li::before {
+    content: counter(how); position: absolute; left: 0; top: var(--sp-3);
+    color: var(--amber-2); font: 600 14px/1.5 ui-monospace, monospace;
+  }
+  #how b { color: var(--ink); font-weight: 600; margin-right: var(--sp-2); }
+  #empty .safe { color: var(--ink-3); font-size: 14px; margin: var(--sp-8) 0 0; }
+
+  /* ── 양식 창 ── */
+  #form { position: fixed; inset: 0; background: var(--bg-sink); display: none; z-index: 55; overflow: auto; }
+  #form.on { display: block; }
+  #formin { max-width: var(--read); margin: 0 auto; padding: var(--sp-10) var(--sp-5) var(--sp-10); }
+  #formin h2 { font-size: 21px; font-weight: 600; margin: 0 0 var(--sp-2); }
+  #formin .lead { color: var(--ink-2); margin: 0 0 var(--sp-8); }
+  .frow { margin-bottom: var(--sp-5); }
+  .flabel { font-size: 14px; color: var(--ink-3); margin-bottom: var(--sp-1); }
+  .fin {
+    background: var(--bg-raise); padding: var(--sp-3) var(--sp-4); border-radius: 7px;
+  }
+  .fin:focus-within { box-shadow: inset 0 0 0 1px var(--amber-2); }
+  #formbtns { display: flex; gap: var(--sp-3); margin-top: var(--sp-8); flex-wrap: wrap; }
+  #formbtns button { color: var(--ink-2); font-size: 15px; padding: var(--sp-3) var(--sp-5); border-radius: 7px; background: var(--bg-raise); }
+  #formbtns button:hover { color: var(--ink); }
+  #formbtns .go { background: var(--amber); color: #171003; font-weight: 600; }
+  #formlist { margin-top: var(--sp-8); }
+  #box { position: fixed; inset: 0; background: var(--bg-sink); display: none; z-index: 56; overflow: auto; }
+  #box.on { display: block; }
+  #boxin { max-width: var(--read); margin: 0 auto; padding: var(--sp-10) var(--sp-5); }
+  #boxin h2 { font-size: 21px; font-weight: 600; margin: 0 0 var(--sp-2); }
+  #boxin .lead { color: var(--ink-2); margin: 0 0 var(--sp-8); }
+  #boxbtns { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
+  #boxbtns button { color: var(--ink-2); font-size: 15px; padding: var(--sp-3) var(--sp-5); border-radius: 7px; background: var(--bg-raise); }
+  #boxbtns button:hover { color: var(--ink); }
+  #boxbtns .go { background: var(--amber); color: #171003; font-weight: 600; }
+  #boxlist { margin-top: var(--sp-8); }
+  .boxrow { display: flex; align-items: baseline; gap: var(--sp-4); padding: var(--sp-3) 0; }
+  .boxrow + .boxrow { border-top: 1px solid var(--line); }
+  .boxrow .nm { font-size: 17px; color: var(--ink); }
+  .boxrow .meta { color: var(--ink-3); font-size: 13px; }
+  .boxrow .grow { flex: 1; }
+  .boxrow button { color: var(--ink-3); font-size: 14px; padding: var(--sp-1) var(--sp-2); border-radius: 5px; }
+  .boxrow button:hover { color: var(--ink); background: var(--bg-raise); }
+  .boxrow.now .nm { color: var(--amber); }
+  .fitem {
+    display: flex; align-items: baseline; gap: var(--sp-3);
+    padding: var(--sp-3) 0;
+  }
+  .fitem + .fitem { border-top: 1px solid var(--line); }
+  .fitem .nm { flex: 1; }
+  .fitem .sub { color: var(--ink-3); font-size: 14px; }
+  .fitem button { color: var(--ink-3); font-size: 13px; }
+  .fitem button:hover { color: var(--ink); }
+
+  /* ── 표지·머리말 (인쇄에만 나온다) ── */
+  /* ── 되돌리기 창 ── */
+  #rew { position: fixed; inset: 0; background: var(--bg-sink); display: none; z-index: 56; }
+  #rew.on { display: flex; flex-direction: column; }
+  #rewtop { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-4) var(--sp-8); background: var(--bg); box-shadow: 0 1px 0 var(--line); }
+  #rewtop .grow { flex: 1; }
+  #rewtop .lead { color: var(--ink-2); font-size: 14px; }
+  #rewgrid { flex: 1; overflow: auto; padding: var(--sp-5) var(--sp-8) var(--sp-8);
+             display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: var(--sp-4); align-content: start; }
+  .rewit { cursor: pointer; }
+  .rewit img { width: 100%; display: block; border-radius: 6px; background: var(--bg-raise); }
+  .rewit .ago { color: var(--ink-3); font-size: 13px; margin-top: var(--sp-1); }
+  .rewit:hover img { box-shadow: 0 0 0 2px var(--amber); }
+  .rewit.picked img { box-shadow: 0 0 0 2px var(--amber); }
+  #rewempty { color: var(--ink-3); padding: var(--sp-10) 0; text-align: center; grid-column: 1 / -1; }
+
+  /* ── 옆 목록: 찍히는 게 바로 보인다 ── */
+  #side {
+    position: fixed; right: 0; top: 0; bottom: 0; width: 190px; display: none;
+    background: var(--bg-raise); padding: var(--sp-4) var(--sp-3);
+    overflow: auto; z-index: 20;
+  }
+  #side.on { display: block; }
+  #side .h { color: var(--ink-3); font-size: 13px; margin-bottom: var(--sp-3); }
+  .sit { display: flex; gap: var(--sp-2); align-items: center; padding: var(--sp-1) 0; cursor: pointer; }
+  .sit img { width: 62px; height: 40px; object-fit: cover; object-position: top; border-radius: 3px; background: var(--bg-sink); }
+  .sit .t { font-size: 12px; color: var(--ink-2); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sit.fresh img { box-shadow: 0 0 0 2px var(--amber); }
+  .sit .secmark { font-size: 12px; color: var(--amber); font-weight: 600; }
+  body.sideon #top, body.sideon #stage, body.sideon #bottom { padding-right: 206px; }
+
+  #spill {
+    display: none; position: fixed; left: 50%; bottom: 74px; transform: translateX(-50%);
+    background: #3a2a08; color: #ffe9b8; padding: var(--sp-3) var(--sp-5); border-radius: 8px;
+    font-size: 14px; max-width: 620px; z-index: 40; line-height: 1.5;
+  }
+  #spill.on { display: block; }
+  #spill b { color: #ffd873; }
+  #spill button {
+    background: var(--amber); color: #171003; font-weight: 600;
+    padding: 3px 10px; border-radius: 5px; margin: 0 2px;
+  }
+
+  #cover { display: none; }
+  #runhead { display: none; }
+
+  /* ── 섹션 머리 ── */
+  .sec {
+    max-width: var(--read); margin: var(--sp-10) auto var(--sp-2);
+    display: flex; align-items: baseline; gap: var(--sp-3);
+  }
+  .sectitle {
+    font-size: 15px; font-weight: 600; letter-spacing: .06em;
+    color: var(--amber); text-transform: none; flex: 1;
+  }
+  .sec button { color: var(--ink-3); font-size: 13px; }
+  .sec button:hover { color: var(--ink); }
+  .sec .off { color: var(--amber-2); }
+  .step.hidden, .sec.hidden .sectitle { opacity: .38; }
+  .sec.hidden .sectitle { text-decoration: line-through; }
+
+  /* ── 표시하기 창 ── */
+  #mark { position: fixed; inset: 0; background: var(--bg-sink); display: none; z-index: 50; }
+  #mark.on { display: flex; flex-direction: column; }
+  #marktop {
+    display: flex; align-items: center; gap: var(--sp-3);
+    padding: var(--sp-4) var(--sp-8); flex-wrap: wrap;
+    background: var(--bg); box-shadow: 0 1px 0 var(--line);
+  }
+  #marktop .grow { flex: 1; }
+  .tool {
+    color: var(--ink-2); font-size: 15px; padding: var(--sp-2) var(--sp-4); border-radius: 7px;
+  }
+  .tool:hover { color: var(--ink); background: var(--bg-raise); }
+  .tool.on { color: #171003; background: var(--amber); font-weight: 600; }
+  #markwrap { flex: 1; display: grid; place-items: center; padding: 0 var(--sp-8) var(--sp-5); min-height: 0; }
+  #markcv { max-width: 100%; max-height: 100%; cursor: crosshair; border-radius: 6px; }
+  #markhint { text-align: center; color: var(--ink-3); font-size: 14px; padding-bottom: var(--sp-4); }
+
+  /* ── 아래 막대 ── */
+  #bottom {
+    margin-top: auto; padding: var(--sp-4) var(--sp-8);
+    display: flex; align-items: center; gap: var(--sp-4);
+    color: var(--ink-3); font-size: 14px;
+  }
+  #bottom .grow { flex: 1; }
+
+  /* ── 인쇄: 이때만 종이 문서가 된다 ── */
+  @media print {
+    body { background: #fff; color: #111; display: block; }
+    #top, #shootwrap, #bottom, .srow, #empty { display: none !important; }
+    .step.hidden, .sec.hidden { display: none !important; }   /* 이번엔 뺀 섹션은 인쇄에도 안 나온다 */
+    .sec button { display: none !important; }
+    .sec { margin: 26px 0 6px; break-after: avoid; }
+    .sectitle { color: #111; font-size: 16px; }
+    #stage { padding: 0; }
+    #steps { max-width: none; }
+    .step { break-inside: avoid; padding: 14px 0; border-top: 1px solid #ddd; }
+    .num { background: #eee; color: #111; }
+    .sdesc { color: #333; }
+    .shot { max-width: 168mm; }                       /* 종이 폭을 거의 다 쓴다 — 높이 제한이 실제 크기를 정한다 */                       /* 종이 폭의 3/4 — 한 장에 두세 단계가 들어간다 */
+    .shot img {
+      border: 1px solid #ddd; background: #fff;
+      max-height: 84mm; width: auto; max-width: 100%;
+      object-fit: contain; object-position: left top;
+    }
+    .shot::after { display: none; }
+    #cover { display: block; break-after: page; padding-top: 46mm; }
+    #cover-org { font-size: 13px; color: #555; letter-spacing: .06em; }
+    #cover-title { font-size: 30px; font-weight: 700; margin: 6px 0 0; color: #111; }
+    #cover-sub { font-size: 15px; color: #444; margin-top: 6px; }
+    #cover-intro { font-size: 14px; color: #333; margin-top: 22mm; max-width: 120mm; white-space: pre-wrap; }
+    #outro { display: block; margin-top: 14mm; padding-top: 5mm; border-top: 1px solid #ddd;
+             font-size: 13px; color: #555; white-space: pre-wrap; break-inside: avoid; }
+    @page { margin: 18mm 16mm; }
+  }
+</style>
+</head>
+<body>
+
+<div id="top">
+  <input id="docname" value="새 매뉴얼" aria-label="매뉴얼 이름">
+  <span class="hint" id="counthint"></span>
+  <span class="grow"></span>
+  <button class="tbtn" id="btn-box">매뉴얼 목록</button>
+  <button class="tbtn" id="btn-form">양식</button>
+  <button class="tbtn" id="btn-sec">섹션 넣기</button>
+  <span class="menuwrap">
+    <button class="tbtn" id="btn-out" aria-haspopup="true" aria-expanded="false">내보내기</button>
+    <div id="outmenu" hidden>
+      <button data-out="print"><b>PDF로 저장</b><i>종이로 뽑거나, 어디서나 똑같이 보일 때</i></button>
+      <button data-out="ppt"><b>PPT로 저장</b><i>발표하거나, 받는 사람이 고쳐 쓰게 할 때</i></button>
+      <button data-out="html"><b>파일 한 장으로</b><i>두 번 눌러 바로 열게, 프로그램 없이 보낼 때</i></button>
+      <button data-out="imgs"><b>사진 원본만</b><i>다른 문서에 사진만 붙여 넣을 때</i></button>
+    </div>
+  </span>
+  <button class="tbtn" id="btn-save">작업 저장</button>
+  <button class="tbtn" id="btn-open">불러오기</button>
+</div>
+
+<div id="cover">
+  <div id="cover-org"></div>
+  <h1 id="cover-title"></h1>
+  <div id="cover-sub"></div>
+  <div id="cover-intro"></div>
+</div>
+
+<div id="stage">
+  <div id="shootwrap">
+    <button id="shoot">화면 찍기 시작</button>
+    <div id="shootsub">먼저 어떤 화면을 찍을지 한 번만 고르면, 그다음부터는 <b>하던 일만 하면 알아서 담깁니다.</b></div>
+    <div id="autowrap">
+      <button id="autobtn" class="tool on"><span id="autolabel">자동 촬영 켜짐</span></button>
+      <button id="pausebtn2" class="tool">잠시 멈춤</button>
+      <button id="rewbtn" class="tool">아까 그 화면</button>
+    </div>
+  </div>
+  <div id="empty">
+    <p class="line">아직 단계가 없습니다. 찍으면 여기에 쌓입니다.</p>
+    <ol id="how">
+      <li><b>고른다</b> 어떤 화면을 담을지 한 번만 정합니다.</li>
+      <li><b>그냥 일한다</b> 화면이 바뀔 때마다 알아서 담깁니다. 타이핑도, 단축키도, 창이 뜨는 것도.</li>
+      <li><b>내보낸다</b> 제목만 달면 PDF·PPT·파일 한 장으로 나옵니다.</li>
+    </ol>
+    <p class="safe">사진은 이 컴퓨터를 벗어나지 않습니다. 인터넷이 끊겨 있어도 됩니다.</p>
+  </div>
+  <div id="steps"></div>
+</div>
+
+<div id="outro"></div>
+
+<div id="spill">
+  <b>브라우저에 자동 저장할 자리가 찼습니다.</b>
+  사진이 많아서입니다. 지금까지 만든 것을 <button id="spill-save">작업 파일로 저장</button>해 두세요.
+  파일로 저장하면 안전하고, 나중에 불러오면 그대로 이어집니다.
+</div>
+
+<div id="bottom">
+  <span id="status">준비됨</span>
+  <span class="grow"></span>
+  <span>이 화면은 컴퓨터 밖으로 나가지 않습니다</span>
+</div>
+
+<div id="side"><div class="h">담기는 대로</div><div id="sidelist"></div></div>
+
+<div id="rew">
+  <div id="rewtop">
+    <span class="lead">최근 화면입니다. 빠뜨린 순간을 고르면 그 자리에 단계로 넣습니다.</span>
+    <span class="grow"></span>
+    <button class="tool" id="rew-close">닫기</button>
+  </div>
+  <div id="rewgrid"></div>
+</div>
+
+<div id="form">
+  <div id="formin">
+    <h2>양식</h2>
+    <p class="lead">회사나 부서마다 다른 표지·머리말·맺음말을 한 번 만들어 두고 계속 불러 씁니다. 단계 내용은 안 건드립니다.</p>
+
+    <div class="frow"><div class="flabel">양식 이름</div>
+      <div class="fin"><input id="f-name" placeholder="예: 마케팅팀 표준"></div></div>
+    <div class="frow"><div class="flabel">회사·부서</div>
+      <div class="fin"><input id="f-org" placeholder="예: 마이크림 마케팅팀"></div></div>
+    <div class="frow"><div class="flabel">표지 문구 (문서 제목 아래 한 줄)</div>
+      <div class="fin"><input id="f-sub" placeholder="예: 신입 인수인계용 · 2026년판"></div></div>
+    <div class="frow"><div class="flabel">머리말 (첫 장 위에 들어갈 안내)</div>
+      <div class="fin"><textarea id="f-intro" rows="3" placeholder="예: 이 문서대로 따라 하면 됩니다. 막히면 담당자에게 물어보세요."></textarea></div></div>
+    <div class="frow"><div class="flabel">맺음말 (마지막에 붙는 문구)</div>
+      <div class="fin"><textarea id="f-outro" rows="2" placeholder="예: 문의 · 마케팅팀 내선 000"></textarea></div></div>
+
+    <div id="formbtns">
+      <button class="go" id="f-apply">이 양식으로 쓰기</button>
+      <button id="f-save">양식으로 저장</button>
+      <button id="f-export">양식 파일 내보내기</button>
+      <button id="f-import">양식 파일 불러오기</button>
+      <button id="f-close">닫기</button>
+    </div>
+
+    <div id="formlist"></div>
+  </div>
+</div>
+
+<div id="box">
+  <div id="boxin">
+    <h2>매뉴얼 목록</h2>
+    <p class="lead">만든 매뉴얼이 여기 쌓입니다. 골라서 이어 쓰고, 비슷한 것은 복제해서 고쳐 씁니다. 전부 이 컴퓨터에만 있습니다.</p>
+    <div id="boxbtns">
+      <button class="go" id="b-new">새 매뉴얼 만들기</button>
+      <button id="b-copy">지금 것 복제</button>
+      <button id="b-close">닫기</button>
+    </div>
+    <div id="boxlist"></div>
+  </div>
+</div>
+
+<input type="file" id="forminput" accept="application/json" hidden>
+
+<div id="mark">
+  <div id="marktop">
+    <button class="tool" data-tool="box">상자</button>
+    <button class="tool" data-tool="arrow">화살표</button>
+    <button class="tool" data-tool="badge">번호</button>
+    <button class="tool" data-tool="blur">가리기</button>
+    <button class="tool" data-tool="crop">자르기</button>
+    <span class="grow"></span>
+    <button class="tool" id="mark-undo">되돌리기</button>
+    <button class="tool" id="mark-clear">전부 지우기</button>
+    <button class="tool" id="mark-done" style="color:var(--amber)">다 했어요</button>
+  </div>
+  <div id="markwrap"><canvas id="markcv"></canvas></div>
+  <div id="markhint">사진 위에서 끌면 그려집니다. 번호는 누른 자리에 붙습니다.</div>
+</div>
+
+<input type="file" id="fileinput" accept="application/json" hidden>
+
+<script>
+"use strict";
+
+const $ = s => document.querySelector(s);
+const state = { name: "새 매뉴얼", steps: [] };
+let stream = null, video = null;
+/* 실수 되돌리기: 지운 뒤 아차 하는 순간이 제일 아프다. 되돌릴 수 있게 한 겹 둔다. */
+const UNDO = { stack: [], MAX: 30 };
+function snap(label) {
+  UNDO.stack.push({ label, steps: JSON.parse(JSON.stringify(state.steps)) });
+  if (UNDO.stack.length > UNDO.MAX) UNDO.stack.shift();
+}
+function undo() {
+  const s0 = UNDO.stack.pop();
+  if (!s0) { say("되돌릴 것이 없습니다"); return; }
+  state.steps = s0.steps;
+  render(); save();
+  say("되돌렸습니다 — " + s0.label);
+}
+
+function say(msg) { $("#status").textContent = msg; }
+
+/* ── 화면 잡기: 한 번 허락받고 계속 쓴다 ── */
+async function startCapture() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+    // 주소가 http면 브라우저가 화면 잡기를 통째로 막는다. 원인을 갈라서 알려 준다.
+    say(window.isSecureContext === false
+      ? "이 주소로는 화면을 찍을 수 없습니다 — 파일을 내려받아 컴퓨터에서 직접 열어 주세요"
+      : "이 브라우저는 화면 찍기를 지원하지 않습니다 — 크롬이나 엣지에서 열어 주세요");
+    return false;
+  }
+  try {
+    stream = await navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: 5 }, audio: false,
+    });
+  } catch (e) {
+    const kind = e && e.name;
+    say(kind === "NotAllowedError" ? "화면 고르기를 취소했습니다 — 다시 누르면 됩니다"
+      : kind === "NotFoundError"  ? "공유할 화면을 찾지 못했습니다"
+      : "화면을 열 수 없습니다 — " + ((e && e.message) || "알 수 없는 이유"));
+    return false;
+  }
+  video = document.createElement("video");
+  video.srcObject = stream;
+  video.muted = true;
+  try {
+    await video.play();
+  } catch (e) {
+    try { stream.getTracks().forEach(t => t.stop()); } catch (e2) {}
+    stream = null; video = null;
+    say("화면을 켜지 못했습니다 — 브라우저를 새로 고친 뒤 다시 해 보세요");
+    return false;
+  }
+  stream.getVideoTracks()[0].addEventListener("ended", () => {
+    stream = null; video = null;
+    watchStop();
+    $("#autowrap").style.display = "none";
+    $("#side").classList.remove("on");
+    document.body.classList.remove("sideon");
+    $("#shoot").textContent = "화면 찍기 시작";
+    $("#shootsub").innerHTML = "화면 공유가 끝났습니다. 다시 시작할 수 있습니다.";
+    say("화면 공유 종료됨");
+  });
+  return true;
+}
+
+/* ── 자동 촬영: 사람이 안 눌러도 화면이 바뀌면 담긴다 ──────────────
+   angela의 고통은 "찍기 귀찮다"가 아니라 "나중에 보면 빠진 게 있다"였다.
+   사람이 누르는 방식이면 사람은 계속 빠뜨린다. 그래서 화면 변화를 본다.
+   규칙과 상수는 실험_변화감지.mjs 에서 5건 검사로 정했다. */
+const WATCH = {
+  on: false, w: 240, h: 150, cv: null, g: null, last: null,
+  armed: true, pending: false, timer: null,
+  TOL: 12, FIRE: 0.020, CALM: 0.004, BUSY: 26,   // BUSY: 계속 바뀌는 화면이면 잠시 쉰다
+  CALMN: 2,      // 멈춤을 인정하는 최소 횟수. 오래 움직였으면 이보다 더 오래 잠잠해야 한다
+  CALMX: 8,      // 아무리 오래 움직였어도 이만큼만 기다린다
+  calm: 0, wide: false,
+  prev: null, spot: null,
+  busy: 0,
+};
+function watchStart() {
+  if (WATCH.on) return;
+  WATCH.cv = document.createElement("canvas");
+  WATCH.cv.width = WATCH.w; WATCH.cv.height = WATCH.h;
+  WATCH.g = WATCH.cv.getContext("2d", { willReadFrequently: true });
+  WATCH.last = null; WATCH.armed = true; WATCH.pending = false; WATCH.busy = 0;
+  WATCH.on = true;
+  WATCH.timer = setInterval(watchTick, 140);
+  $("#autolabel").textContent = "자동 촬영 켜짐";
+  $("#autobtn").classList.add("on");
+}
+function watchStop() {
+  WATCH.on = false;
+  clearInterval(WATCH.timer); WATCH.timer = null;
+  $("#autolabel").textContent = "자동 촬영 꺼짐";
+  $("#autobtn").classList.remove("on");
+}
+/* 되돌리기 창고: 최근 화면을 잠깐 들고 있다가 "아까 그거"를 꺼낸다.
+   Dubble Pro가 유료로 파는 기능(영상 되감기)을 같은 목적으로 대체한다.
+   영상을 통째로 들지 않고 낮은 화질 장면만 들어 메모리를 아낀다. */
+const REWIND = { keep: [], MAX: 90, cv: null, g: null, every: 2, tick: 0 };
+function rewindPush() {
+  if (!video || !video.videoWidth) return;
+  if (++REWIND.tick % REWIND.every) return;
+  if (!REWIND.cv) {
+    REWIND.cv = document.createElement("canvas");
+    REWIND.cv.width = 480; REWIND.cv.height = Math.round(480 * video.videoHeight / video.videoWidth);
+    REWIND.g = REWIND.cv.getContext("2d");
+  }
+  REWIND.g.drawImage(video, 0, 0, REWIND.cv.width, REWIND.cv.height);
+  REWIND.keep.push({ t: Date.now(), thumb: REWIND.cv.toDataURL("image/jpeg", 0.55) });
+  if (REWIND.keep.length > REWIND.MAX) REWIND.keep.shift();
+}
+
+/* 바뀐 자리 찾기: 어디가 달라졌는지 네모로 잡아 준다.
+   Tango는 "클릭한 곳"을 표시한다. 우리는 클릭을 모르므로 "달라진 곳"을 쓴다 —
+   타이핑·단축키로 바뀐 자리도 잡히므로 더 넓다. */
+/* 다음 변화를 기다리는 자리로 되돌린다 */
+function watchArm() {
+  WATCH.armed = true; WATCH.pending = false; WATCH.busy = 0; WATCH.calm = 0;
+}
+
+/* 변화가 여러 번에 걸쳐 일어나면 자리를 합쳐 잡는다.
+   창이 천천히 열릴 때 첫 조각만 표시되던 것을 막는다. */
+function spotWiden(box) {
+  if (WATCH.wide) return;                     // 이미 화면 전체가 바뀐 건이면 표시하지 않는다
+  if (!box) { WATCH.wide = true; WATCH.spot = null; return; }
+  const a = WATCH.spot;
+  if (!a) { WATCH.spot = box; return; }
+  const x0 = Math.min(a.x, box.x), y0 = Math.min(a.y, box.y);
+  const x1 = Math.max(a.x + a.w, box.x + box.w), y1 = Math.max(a.y + a.h, box.y + box.h);
+  if ((x1 - x0) * (y1 - y0) > 0.55) { WATCH.wide = true; WATCH.spot = null; return; }
+  WATCH.spot = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
+function changedBox(prev, cur, w, h, tol) {
+  let x0 = w, y0 = h, x1 = -1, y1 = -1, n = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      if (Math.abs(cur[i] - prev[i]) > tol) {
+        n++;
+        if (x < x0) x0 = x; if (x > x1) x1 = x;
+        if (y < y0) y0 = y; if (y > y1) y1 = y;
+      }
+    }
+  }
+  if (x1 < 0 || n < 12) return null;
+  const area = ((x1 - x0 + 1) * (y1 - y0 + 1)) / (w * h);
+  if (area > 0.55) return null;             // 화면 전체가 바뀐 것은 표시할 자리가 아니다
+  return { x: x0 / w, y: y0 / h, w: (x1 - x0 + 1) / w, h: (y1 - y0 + 1) / h };
+}
+
+function watchTick() {
+  if (!video || !video.videoWidth || state.paused) return;
+  rewindPush();
+  WATCH.g.drawImage(video, 0, 0, WATCH.w, WATCH.h);
+  const cur = WATCH.g.getImageData(0, 0, WATCH.w, WATCH.h).data;
+  const gray = new Uint8Array(WATCH.w * WATCH.h);
+  for (let i = 0, p = 0; i < gray.length; i++, p += 4)
+    gray[i] = (cur[p] * 77 + cur[p + 1] * 151 + cur[p + 2] * 28) >> 8;
+  if (!WATCH.last) { WATCH.last = gray; return; }
+  WATCH.prev = WATCH.last;
+  let n = 0;
+  for (let i = 0; i < gray.length; i++) if (Math.abs(gray[i] - WATCH.last[i]) > WATCH.TOL) n++;
+  const d = n / gray.length;
+  WATCH.last = gray;
+
+  if (WATCH.armed && d > WATCH.FIRE) {          // 바뀌기 시작했다
+    WATCH.armed = false; WATCH.pending = true; WATCH.busy = 0; WATCH.calm = 0;
+    WATCH.wide = false;
+    WATCH.spot = changedBox(WATCH.prev || gray, gray, WATCH.w, WATCH.h, WATCH.TOL);
+    if (!WATCH.spot) WATCH.wide = true;
+    return;
+  }
+  if (!WATCH.armed) {
+    WATCH.busy++;
+    if (WATCH.busy > WATCH.BUSY) {              // 영상처럼 계속 바뀌면 이번 건 버린다
+      watchArm();
+      return;
+    }
+    if (d >= WATCH.CALM) {                      // 아직 바뀌는 중 — 바뀐 자리를 넓혀 둔다
+      WATCH.calm = 0;
+      spotWiden(changedBox(WATCH.prev || gray, gray, WATCH.w, WATCH.h, WATCH.TOL));
+      return;
+    }
+    // 잠잠하다. 다만 한 번 잠잠한 것으로는 못 믿는다 —
+    // 화면 공유는 같은 장면을 다시 보내기도 하고, 영상 한가운데에도 안 바뀌는 순간이 있다.
+    // 그래서 오래 움직였을수록 더 오래 잠잠해야 "끝났다"고 본다.
+    WATCH.calm++;
+    const need = Math.min(WATCH.CALMX, Math.max(WATCH.CALMN, Math.ceil(WATCH.busy / 4)));
+    if (WATCH.calm < need) return;
+    if (WATCH.pending) addShot(true);
+    watchArm();
+  }
+}
+
+function grabFrame() {
+  if (!video || !video.videoWidth) return null;
+  const c = document.createElement("canvas");
+  c.width = video.videoWidth; c.height = video.videoHeight;
+  c.getContext("2d").drawImage(video, 0, 0);
+  return c.toDataURL("image/png");
+}
+
+async function shoot() {
+  if (!stream) {
+    const ok = await startCapture();
+    if (!ok) return;
+    $("#shoot").textContent = "지금 찍기";
+    $("#shootsub").innerHTML = '이제 <b>그냥 하던 일을 하세요.</b> 화면이 바뀔 때마다 알아서 담깁니다. 원할 때 <kbd>Space</kbd> 로 직접 찍어도 됩니다.';
+    $("#autowrap").style.display = "flex";
+    $("#side").classList.add("on");
+    document.body.classList.add("sideon");
+    watchStart(); renderSide();
+    return;
+  }
+  addShot(false);
+}
+
+/* 글 자동 작성: 상용은 "Click 'Connect'"처럼 눌린 버튼 이름을 쓴다.
+   우리는 눌린 것을 알 수 없으므로 지어내지 않는다. 대신 아는 것만 적는다 —
+   몇 번째 단계인지, 화면 어디가 달라졌는지. 나머지는 사람이 채운다. */
+const SPOTWORD = (sp) => {
+  if (!sp) return "";
+  const cx = sp.x + sp.w / 2, cy = sp.y + sp.h / 2;
+  const row = cy < 0.33 ? "위" : cy > 0.66 ? "아래" : "가운데";
+  const col = cx < 0.33 ? "왼쪽" : cx > 0.66 ? "오른쪽" : "가운데";
+  const big = sp.w * sp.h > 0.12;
+  // 우리말은 좌우를 먼저, 위아래를 뒤에 말한다 — "오른쪽 아래"지 "아래 오른쪽"이 아니다
+  const where = row === col ? row : (col === "가운데" ? row + " 가운데" : col + " " + row);
+  return where + (big ? " 영역" : " 부분") + "이 바뀌었습니다";
+};
+
+function addShot(auto) {
+  const img = grabFrame();
+  if (!img) { if (!auto) say("아직 화면이 안 들어왔습니다 — 잠시 뒤 다시"); return; }
+  const spot = auto ? WATCH.spot : null;
+  state.steps.push({ title: "", desc: "", img, auto: !!auto, spot, hint: auto ? SPOTWORD(spot) : "" });
+  render(); save();
+  const n = state.steps.filter(x => !x.sec).length;
+  say(auto ? n + "번째 단계가 자동으로 담겼습니다" : n + "번째 단계를 찍었습니다");
+  if (!auto) requestAnimationFrame(() => {
+    const last = document.querySelector(".step:last-child .stitle");
+    if (last) { last.focus(); last.scrollIntoView({ block: "center", behavior: "smooth" }); }
+  });
+}
+
+/* ── 그리기 ── */
+function renderSide() {
+  if (!$("#side").classList.contains("on")) return;
+  const box = $("#sidelist");
+  box.innerHTML = "";
+  let n = 0;
+  const last = state.steps.length - 1;
+  state.steps.forEach((s, i) => {
+    const el = document.createElement("div");
+    el.className = "sit" + (i === last ? " fresh" : "");
+    if (s.sec) {
+      el.innerHTML = '<span class="secmark">§</span><span class="t">' + (s.title || "섹션") + '</span>';
+    } else {
+      n++;
+      el.innerHTML = '<img alt=""><span class="t">' + n + ". " + (s.title || "제목 없음") + '</span>';   // 글이 바로 옆에 있어 사진은 장식
+      if (s.img) el.querySelector("img").src = s.img;
+    }
+    el.onclick = () => {
+      const target = document.querySelectorAll("#steps .step, #steps .sec")[i];
+      if (target) target.scrollIntoView({ block: "center", behavior: "smooth" });
+    };
+    box.appendChild(el);
+  });
+  box.scrollTop = box.scrollHeight;
+}
+
+function render() {
+  const box = $("#steps");
+  box.innerHTML = "";
+  $("#empty").style.display = state.steps.length ? "none" : "block";
+  const nSteps = state.steps.filter(x => !x.sec).length;
+  const nSecs = state.steps.filter(x => x.sec).length;
+  $("#counthint").textContent = nSteps ? nSteps + "단계" + (nSecs ? " · " + nSecs + "섹션" : "") : "";
+  renderSide();
+
+  let n = 0, cur = "";
+  state.steps.forEach((s, i) => {
+    if (s.sec) {                                   // 섹션 머리
+      const h = document.createElement("div");
+      h.className = "sec";
+      h.innerHTML =
+        '<div class="sectitle" contenteditable="plaintext-only" data-ph="섹션 이름 (예: 처음 설정하기)"></div>' +
+        '<button data-act="skip" class="' + (s.off ? 'off' : '') + '">' + (s.off ? '다시 넣기' : '이번엔 빼기') + '</button>' +
+        '<button data-act="up">위로</button><button data-act="down">아래로</button><button data-act="del">삭제</button>';
+      const ti = h.querySelector(".sectitle");
+      ti.textContent = s.title; setPh(ti);
+      ti.addEventListener("input", () => { s.title = ti.textContent; setPh(ti); save(); });
+      h.classList.toggle("hidden", !!s.off);
+      h.querySelectorAll("[data-act]").forEach(b => b.onclick = () => act(b.dataset.act, i));
+      box.appendChild(h);
+      cur = s.off ? "off" : "";
+      return;
+    }
+    if (cur === "off") { s._off = true; } else { delete s._off; }
+    if (!s._off) n++;
+    const el = document.createElement("div");
+    el.className = "step" + (s._off ? " hidden" : "");
+    el.innerHTML =
+      '<div class="num">' + n + '</div>' +
+      '<div class="body">' +
+        '<div class="stitle" contenteditable="plaintext-only" data-ph="' + (s.auto ? "여기서 무엇을 했나요" : "이 단계에서 무엇을 하나요") + '"></div>' +
+        '<div class="sdesc" contenteditable="plaintext-only" data-ph="' + (s.hint || "필요하면 설명을 덧붙이세요") + '"></div>' +
+        (s.img ? '<div class="shot"><img alt="' + esc(n + "번째 단계 화면" + (s.title ? " — " + s.title : "")) + '"></div>' : '') +
+        ((s.extra || []).map((_, k) => '<div class="shot extra"><img alt="' +
+            esc(n + "번째 단계 화면 " + (k + 2)) + '"></div>').join("")) +
+        '<div class="srow">' +
+          '<button data-act="mark">표시하기</button>' +
+          '<button data-act="merge">위와 합치기</button>' +
+          '<button data-act="split">둘로 나누기</button>' +
+          '<button data-act="up">위로</button>' +
+          '<button data-act="down">아래로</button>' +
+          '<button data-act="del">삭제</button>' +
+        '</div>' +
+      '</div>';
+    const t = el.querySelector(".stitle"), d = el.querySelector(".sdesc");
+    t.textContent = s.title; d.textContent = s.desc;
+    setPh(t); setPh(d);
+    t.addEventListener("input", () => { s.title = t.textContent; setPh(t); save(); });
+    d.addEventListener("input", () => { s.desc = d.textContent; setPh(d); save(); });
+    t.addEventListener("keydown", e => {
+      if (e.key === "Enter") { e.preventDefault(); d.focus(); }
+    });
+    if (s.img) {
+      const shot = el.querySelector(".shot");
+      el.querySelector("img").src = s.img;
+      if (s.spot && !s.marks) {                      // 바뀐 자리를 네모로 (표시를 손댔으면 안 그린다)
+        const sp = document.createElement("div");
+        sp.className = "spot";
+        sp.style.left = (s.spot.x * 100) + "%"; sp.style.top = (s.spot.y * 100) + "%";
+        sp.style.width = (s.spot.w * 100) + "%"; sp.style.height = (s.spot.h * 100) + "%";
+        shot.appendChild(sp);
+      }
+      shot.onclick = () => shot.classList.toggle("open");
+      const ex = el.querySelectorAll(".shot.extra");
+      (s.extra || []).forEach((src, k) => {
+        if (!ex[k]) return;
+        ex[k].querySelector("img").src = src;
+        ex[k].onclick = () => ex[k].classList.toggle("open");
+      });
+    }
+    el.querySelectorAll("[data-act]").forEach(b => {
+      b.onclick = () => act(b.dataset.act, i);
+    });
+    box.appendChild(el);
+  });
+}
+
+function setPh(el) {
+  if (el.textContent.trim()) el.removeAttribute("data-empty");
+  else el.setAttribute("data-empty", "1");
+}
+
+function act(a, i) {
+  if (a === "mark") { openMark(i); return; }
+  if (a === "del" || a === "merge" || a === "split" || a === "up" || a === "down") {
+    snap({ del: "삭제", merge: "합치기", split: "나누기", up: "위로", down: "아래로" }[a]);
+  }
+  if (a === "merge") {
+    let j = i - 1;
+    while (j >= 0 && state.steps[j].sec) j--;
+    if (j < 0) { say("위에 합칠 단계가 없습니다"); return; }
+    const up = state.steps[j], me = state.steps[i];
+    up.desc = [up.desc, me.title, me.desc].filter(Boolean).join(" ");
+    if (!up.extra) up.extra = [];
+    if (me.img) up.extra.push(me.img);              // 사진은 버리지 않고 딸려 붙인다
+    state.steps.splice(i, 1);
+    render(); save();
+    say("위 단계와 합쳤습니다 — 사진은 둘 다 남습니다");
+    return;
+  }
+  if (a === "split") {
+    const s = state.steps[i];
+    if (s.sec) { say("섹션 이름은 나눌 수 없습니다"); return; }
+    const nu = { title: "", desc: "", img: "", auto: false };
+    if (s.extra && s.extra.length) {            // 합칠 때 딸려 온 사진이 있으면 그것이 아래 단계가 된다
+      nu.img = s.extra.shift();
+      if (!s.extra.length) delete s.extra;
+      nu.title = (s.title || "단계") + " (이어서)";
+    } else {
+      const two = cutText(s.desc);              // 사진이 하나면 설명 뒷부분을 떼어 낸다
+      if (!two) { say("나눌 것이 없습니다 — 딸린 사진도 없고 설명도 짧습니다"); return; }
+      s.desc = two[0];
+      nu.title = (s.title || "단계") + " (이어서)";
+      nu.desc = two[1];
+    }
+    state.steps.splice(i + 1, 0, nu);
+    render(); save();
+    say("둘로 나눴습니다 — 아래 단계에 제목을 붙여 주세요");
+    return;
+  }
+  if (a === "skip") {
+    const s = state.steps[i];
+    s.off = !s.off;
+    render(); save();
+    say(s.off ? "이 섹션은 내보낼 때 빠집니다" : "이 섹션을 다시 넣습니다");
+    return;
+  }
+  if (a === "del") { state.steps.splice(i, 1); }
+  else if (a === "up" && i > 0) { const [x] = state.steps.splice(i, 1); state.steps.splice(i - 1, 0, x); }
+  else if (a === "down" && i < state.steps.length - 1) { const [x] = state.steps.splice(i, 1); state.steps.splice(i + 1, 0, x); }
+  render(); save();
+}
+
+/* ── 표시하기: 사진 위에 상자·화살표·번호·가리기 ── */
+const MK = { i: -1, tool: "box", marks: [], base: null, drag: null };
+
+function openMark(i) {
+  const s = state.steps[i];
+  if (!s || !s.img) { say("사진이 있는 단계에서만 표시할 수 있습니다"); return; }
+  MK.i = i;
+  MK.marks = (s.marks || []).slice();
+  MK.base = new Image();
+  MK.base.onload = () => { fitMark(); drawMark(); };
+  MK.base.src = s.orig || s.img;
+  $("#mark").classList.add("on");
+  setTool("box");
+}
+
+function fitMark() {
+  const cv = $("#markcv");
+  cv.width = MK.base.naturalWidth; cv.height = MK.base.naturalHeight;
+}
+
+function setTool(t) {
+  MK.tool = t;
+  document.querySelectorAll("#marktop .tool[data-tool]").forEach(b =>
+    b.classList.toggle("on", b.dataset.tool === t));
+  $("#markhint").textContent =
+    t === "crop" ? "남길 부분만 끌어서 고르세요 — 나머지는 잘려 나갑니다."
+    : t === "badge" ? "누른 자리에 번호가 붙습니다."
+    : t === "blur" ? "가릴 곳을 끌어서 덮으세요 — 그 부분은 완전히 지워집니다."
+    : t === "arrow" ? "가리킬 방향으로 끄세요."
+    : "감쌀 곳을 끌어서 상자를 그리세요.";
+}
+
+function drawMark(preview) {
+  const cv = $("#markcv"), g = cv.getContext("2d");
+  g.clearRect(0, 0, cv.width, cv.height);
+  g.drawImage(MK.base, 0, 0);
+  const all = preview ? MK.marks.concat([preview]) : MK.marks;
+  let n = 0;
+  for (const m of all) {
+    if (m.t === "badge") n++;
+    paintMark(g, m, n);
+  }
+}
+
+function paintMark(g, m, n) {
+  const W = Math.max(3, Math.round(MK.base.naturalWidth / 380));   // 사진 크기에 맞춘 선 굵기
+  g.save();
+  g.lineWidth = W; g.strokeStyle = "#ff3b30"; g.fillStyle = "#ff3b30";
+  g.lineCap = "round"; g.lineJoin = "round";
+  if (m.t === "box") {
+    g.strokeRect(m.x, m.y, m.w, m.h);
+  } else if (m.t === "arrow") {
+    const a = Math.atan2(m.h, m.w), L = Math.hypot(m.w, m.h);
+    const hx = m.x + m.w, hy = m.y + m.h;
+    g.beginPath(); g.moveTo(m.x, m.y); g.lineTo(hx, hy); g.stroke();
+    const head = Math.max(10, Math.min(L * 0.28, W * 7));
+    g.beginPath();
+    g.moveTo(hx, hy);
+    g.lineTo(hx - Math.cos(a - 0.42) * head, hy - Math.sin(a - 0.42) * head);
+    g.lineTo(hx - Math.cos(a + 0.42) * head, hy - Math.sin(a + 0.42) * head);
+    g.closePath(); g.fill();
+  } else if (m.t === "blur") {
+    g.fillStyle = "#2b2f34";
+    g.fillRect(m.x, m.y, m.w, m.h);
+    g.strokeStyle = "#4b5158"; g.lineWidth = Math.max(1, W / 2);
+    g.strokeRect(m.x, m.y, m.w, m.h);
+  } else if (m.t === "badge") {
+    const r = Math.max(14, W * 6);
+    g.beginPath(); g.arc(m.x, m.y, r, 0, Math.PI * 2); g.fill();
+    g.fillStyle = "#fff";
+    g.font = "600 " + Math.round(r * 1.15) + "px sans-serif";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillText(String(n), m.x, m.y + r * 0.06);
+  }
+  g.restore();
+}
+
+function markPos(e) {
+  const cv = $("#markcv"), r = cv.getBoundingClientRect();
+  return { x: (e.clientX - r.left) * (cv.width / r.width),
+           y: (e.clientY - r.top) * (cv.height / r.height) };
+}
+
+$("#markcv").addEventListener("pointerdown", e => {
+  const p = markPos(e);
+  if (MK.tool === "badge") { MK.marks.push({ t: "badge", x: p.x, y: p.y }); drawMark(); return; }
+  MK.drag = { t: MK.tool, x: p.x, y: p.y, w: 0, h: 0 };
+  $("#markcv").setPointerCapture(e.pointerId);
+});
+$("#markcv").addEventListener("pointermove", e => {
+  if (!MK.drag) return;
+  const p = markPos(e);
+  MK.drag.w = p.x - MK.drag.x; MK.drag.h = p.y - MK.drag.y;
+  drawMark(MK.drag);
+});
+$("#markcv").addEventListener("pointerup", () => {
+  if (!MK.drag) return;
+  const d = MK.drag; MK.drag = null;
+  if (Math.abs(d.w) < 4 && Math.abs(d.h) < 4) { drawMark(); return; }
+  if (d.t !== "arrow") {   // 음수 방향으로 끌어도 되게
+    if (d.w < 0) { d.x += d.w; d.w = -d.w; }
+    if (d.h < 0) { d.y += d.h; d.h = -d.h; }
+  }
+  if (d.t === "crop") { doCrop(d); return; }
+  MK.marks.push(d); drawMark();
+});
+
+function doCrop(r) {
+  const c2 = document.createElement("canvas");
+  c2.width = Math.round(r.w); c2.height = Math.round(r.h);
+  const q = c2.getContext("2d");
+  q.drawImage(MK.base, Math.round(r.x), Math.round(r.y), c2.width, c2.height, 0, 0, c2.width, c2.height);
+  const url = c2.toDataURL("image/png");
+  const im = new Image();
+  im.onload = () => {
+    MK.base = im;
+    MK.marks = MK.marks.map(m => ({ ...m, x: m.x - r.x, y: m.y - r.y }))
+                       .filter(m => m.x > -20 && m.y > -20 && m.x < c2.width + 20 && m.y < c2.height + 20);
+    fitMark(); drawMark();
+    setTool("box");
+    say("잘랐습니다 — 표시는 따라옵니다");
+  };
+  im.src = url;
+}
+
+document.querySelectorAll("#marktop .tool[data-tool]").forEach(b =>
+  b.onclick = () => setTool(b.dataset.tool));
+$("#mark-undo").onclick = () => { MK.marks.pop(); drawMark(); };
+$("#mark-clear").onclick = () => { MK.marks = []; drawMark(); };
+$("#mark-done").onclick = () => {
+  const s = state.steps[MK.i];
+  if (s) {
+    if (!s.orig) s.orig = s.img;          // 원본은 따로 지킨다 (angela 요구 6번)
+    s.marks = MK.marks;
+    s.img = $("#markcv").toDataURL("image/png");
+  }
+  $("#mark").classList.remove("on");
+  render(); save();
+  say(MK.marks.length ? "표시 " + MK.marks.length + "개를 넣었습니다" : "표시를 지웠습니다");
+};
+
+/* ── 저장: 브라우저 안에 자동, 파일로도 ── */
+let boxTimer = null;
+function boxLater() {
+  if (boxTimer) clearTimeout(boxTimer);
+  boxTimer = setTimeout(() => { boxTimer = null; if (state.steps.length) boxSave(); }, 1500);
+}
+function save() {
+  state.name = $("#docname").value;
+  state.saved = false;
+  boxLater();
+  try {
+    localStorage.setItem("manualDraft", JSON.stringify(state));
+    if (state.spill) { state.spill = false; $("#spill").classList.remove("on"); }
+  } catch (e) {
+    // 브라우저 저장 칸이 찼다. 사진이 크면 금방 찬다.
+    state.spill = true;
+    $("#spill").classList.add("on");
+  }
+}
+function load() {
+  try {
+    const raw = localStorage.getItem("manualDraft");
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (d && Array.isArray(d.steps)) {
+      state.id = d.id || null;
+      state.name = d.name || "새 매뉴얼";
+      state.steps = d.steps;
+      state.form = d.form || null;
+      $("#docname").value = state.name;
+      paintCover();
+      render();
+      if (state.steps.length) say("이어서 작업합니다 — " + state.steps.length + "단계 불러옴");
+    }
+  } catch (e) {}
+}
+
+/* ── 여러 매뉴얼 보관함 ───────────────────────────────────────────
+   사진이 커서 브라우저의 작은 저장 칸은 금방 찬다. 그래서 보관함은
+   같은 컴퓨터 안의 더 큰 칸(IndexedDB)에 둔다. 그 칸을 못 쓰는 환경이면
+   원래 칸으로 물러선다 — 기능이 사라지는 것보다 좁게라도 도는 편이 낫다. */
+const BOX = { ready: null, db: null, local: false };
+
+function boxOpen() {
+  if (BOX.ready) return BOX.ready;
+  BOX.ready = new Promise(res => {
+    let rq;
+    try { rq = window.indexedDB && indexedDB.open("manualBox", 1); } catch (e) { rq = null; }
+    if (!rq) { BOX.local = true; return res(null); }
+    rq.onupgradeneeded = () => { try { rq.result.createObjectStore("docs", { keyPath: "id" }); } catch (e) {} };
+    rq.onsuccess = () => { BOX.db = rq.result; res(BOX.db); };
+    rq.onerror = () => { BOX.local = true; res(null); };
+  });
+  return BOX.ready;
+}
+function boxLocal() {
+  try { return JSON.parse(localStorage.getItem("manualBox") || "[]"); } catch (e) { return []; }
+}
+function boxLocalWrite(list) {
+  try { localStorage.setItem("manualBox", JSON.stringify(list)); return true; }
+  catch (e) { state.spill = true; $("#spill").classList.add("on"); return false; }
+}
+async function boxPut(doc) {
+  const db = await boxOpen();
+  if (!db) {
+    const list = boxLocal().filter(d => d.id !== doc.id);
+    list.push(doc);
+    return boxLocalWrite(list);
+  }
+  return new Promise(res => {
+    try {
+      const tx = db.transaction("docs", "readwrite");
+      tx.objectStore("docs").put(doc);
+      tx.oncomplete = () => res(true);
+      tx.onerror = () => res(false);
+    } catch (e) { res(false); }
+  });
+}
+async function boxAll() {
+  const db = await boxOpen();
+  if (!db) return boxLocal().sort((a, b) => (b.at || 0) - (a.at || 0));
+  return new Promise(res => {
+    try {
+      const rq = db.transaction("docs", "readonly").objectStore("docs").getAll();
+      rq.onsuccess = () => res((rq.result || []).sort((a, b) => (b.at || 0) - (a.at || 0)));
+      rq.onerror = () => res([]);
+    } catch (e) { res([]); }
+  });
+}
+async function boxDel(id) {
+  const db = await boxOpen();
+  if (!db) return boxLocalWrite(boxLocal().filter(d => d.id !== id));
+  return new Promise(res => {
+    try {
+      const tx = db.transaction("docs", "readwrite");
+      tx.objectStore("docs").delete(id);
+      tx.oncomplete = () => res(true);
+      tx.onerror = () => res(false);
+    } catch (e) { res(false); }
+  });
+}
+
+function newId() { return "m" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36); }
+function docNow() {
+  if (!state.id) state.id = newId();
+  return { id: state.id, name: state.name || "새 매뉴얼", at: Date.now(),
+           steps: state.steps, form: state.form || null };
+}
+async function boxSave() { await boxPut(docNow()); }
+
+function docInto(d) {
+  state.id = d.id || newId();
+  state.name = d.name || "새 매뉴얼";
+  state.steps = Array.isArray(d.steps) ? d.steps : [];
+  state.form = d.form || null;
+  $("#docname").value = state.name;
+  paintCover(); render(); save();
+}
+
+async function boxOpenDoc(id) {
+  const list = await boxAll();
+  const d = list.find(x => x.id === id);
+  if (!d) { say("그 매뉴얼을 찾을 수 없습니다"); return; }
+  await boxSave();                       // 보던 것을 먼저 넣어 두고 옮긴다
+  docInto(d);
+  boxShow(false);
+  say("열었습니다 — " + state.name + " · " + state.steps.length + "단계");
+}
+async function boxNew() {
+  await boxSave();
+  docInto({ id: newId(), name: "새 매뉴얼", steps: [], form: state.form });
+  await boxSave();
+  boxShow(false);
+  say("새 매뉴얼을 시작합니다 — 양식은 그대로 씁니다");
+}
+async function boxCopy() {
+  await boxSave();
+  const copy = { id: newId(), name: (state.name || "새 매뉴얼") + " 복사본", at: Date.now(),
+                 steps: JSON.parse(JSON.stringify(state.steps)), form: state.form };
+  await boxPut(copy);
+  docInto(copy);
+  boxShow(false);
+  say("복제했습니다 — 고쳐 써도 원본은 그대로입니다");
+}
+async function boxRemove(id) {
+  if (id === state.id) { say("지금 보고 있는 매뉴얼은 지울 수 없습니다"); return; }
+  await boxDel(id);
+  await boxPaint();
+  say("지웠습니다");
+}
+async function boxRename(id) {
+  const list = await boxAll();
+  const d = list.find(x => x.id === id);
+  if (!d) return;
+  const nu = prompt("새 이름", d.name || "");
+  if (nu === null) return;
+  d.name = String(nu).trim() || d.name;
+  await boxPut(d);
+  if (id === state.id) { state.name = d.name; $("#docname").value = d.name; paintCover(); }
+  await boxPaint();
+}
+
+async function boxPaint() {
+  const list = await boxAll();
+  const when = t => {
+    if (!t) return "";
+    const d = new Date(t), z = n => String(n).padStart(2, "0");
+    return d.getFullYear() + "." + z(d.getMonth() + 1) + "." + z(d.getDate()) + " " + z(d.getHours()) + ":" + z(d.getMinutes());
+  };
+  $("#boxlist").innerHTML = list.length ? list.map(d => {
+    const steps = (d.steps || []).filter(x => !x.sec).length;
+    const secs = (d.steps || []).filter(x => x.sec).length;
+    const now = d.id === state.id;
+    return '<div class="boxrow' + (now ? ' now' : '') + '">' +
+      '<span class="nm">' + esc(d.name || "이름 없음") + (now ? " · 보는 중" : "") + '</span>' +
+      '<span class="meta">' + steps + '단계' + (secs ? " · " + secs + "섹션" : "") + ' · ' + when(d.at) + '</span>' +
+      '<span class="grow"></span>' +
+      (now ? '' : '<button data-box="open" data-id="' + d.id + '">열기</button>') +
+      '<button data-box="rename" data-id="' + d.id + '">이름</button>' +
+      (now ? '' : '<button data-box="del" data-id="' + d.id + '">삭제</button>') +
+      '</div>';
+  }).join("") : '<p class="lead">아직 없습니다. 지금 만들고 있는 것이 첫 번째가 됩니다.</p>';
+}
+
+async function boxShow(on) {
+  if (on) { await boxSave(); await boxPaint(); }
+  $("#box").classList.toggle("on", !!on);
+}
+
+function saveFile() {
+  save();
+  const blob = new Blob([JSON.stringify(state)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = (state.name || "매뉴얼") + ".manual.json";
+  a.click();
+  state.saved = true;
+  if (state.spill) { state.spill = false; $("#spill").classList.remove("on"); say("파일로 저장했습니다 — 이제 안전합니다"); }
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  say("작업 파일로 저장했습니다");
+}
+
+function openFile(file) {
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      if (!d || !Array.isArray(d.steps)) throw 0;
+      state.id = d.id || newId(); state.name = d.name || "새 매뉴얼";
+      state.steps = d.steps; state.form = d.form || null;
+      $("#docname").value = state.name;
+      paintCover(); render(); save(); boxSave();
+      say("불러왔습니다 — " + state.steps.length + "단계 · 매뉴얼 목록에도 들어갔습니다");
+    } catch (e) { say("이 파일은 열 수 없습니다"); }
+  };
+  r.readAsText(file);
+}
+
+/* ── 압축 파일 만들기 (외부 라이브러리 없이) ───────────────────────
+   파워포인트 파일(.pptx)과 이미지 묶음(.zip)은 둘 다 ZIP이다.
+   압축은 안 하고 그대로 담는다(store) — 코드가 짧고, 여는 데 문제없다. */
+const CRC = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(buf) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < buf.length; i++) c = CRC[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+const enc = new TextEncoder();
+function zipMake(files) {                       // files: [{name, data:Uint8Array}]
+  const chunks = [], central = [];
+  let offset = 0;
+  for (const f of files) {
+    const name = enc.encode(f.name);
+    const crc = crc32(f.data), size = f.data.length;
+    const local = new Uint8Array(30 + name.length);
+    const dv = new DataView(local.buffer);
+    dv.setUint32(0, 0x04034b50, true);
+    dv.setUint16(4, 20, true); dv.setUint16(6, 0x0800, true);   // UTF-8 이름
+    dv.setUint16(8, 0, true);                                    // 저장만
+    dv.setUint32(14, crc, true);
+    dv.setUint32(18, size, true); dv.setUint32(22, size, true);
+    dv.setUint16(26, name.length, true);
+    local.set(name, 30);
+    chunks.push(local, f.data);
+
+    const cen = new Uint8Array(46 + name.length);
+    const cv = new DataView(cen.buffer);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(4, 20, true); cv.setUint16(6, 20, true);
+    cv.setUint16(8, 0x0800, true); cv.setUint16(10, 0, true);
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, size, true); cv.setUint32(24, size, true);
+    cv.setUint16(28, name.length, true);
+    cv.setUint32(42, offset, true);
+    cen.set(name, 46);
+    central.push(cen);
+    offset += local.length + size;
+  }
+  const cenSize = central.reduce((a, c) => a + c.length, 0);
+  const end = new Uint8Array(22);
+  const ev = new DataView(end.buffer);
+  ev.setUint32(0, 0x06054b50, true);
+  ev.setUint16(8, files.length, true); ev.setUint16(10, files.length, true);
+  ev.setUint32(12, cenSize, true); ev.setUint32(16, offset, true);
+  return new Blob([...chunks, ...central, end], { type: "application/octet-stream" });
+}
+function dataURLtoBytes(u) {
+  const b = atob(u.split(",")[1]);
+  const a = new Uint8Array(b.length);
+  for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i);
+  return a;
+}
+function esc(s) {
+  return String(s || "").replace(/[<>&"']/g, c =>
+    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" }[c]));
+}
+function download(blob, name) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+/* ── 이미지 원본 묶음 (angela 요구 6번) ── */
+function exportImages() {
+  const files = [];
+  let n = 0;
+  live().forEach(s => {
+    if (s.sec || !s.img) return;
+    n++;
+    const nm = String(n).padStart(2, "0") + "_" + (s.title || "단계").replace(/[\\/:*?"<>|]/g, "") + ".png";
+    files.push({ name: "원본/" + nm, data: dataURLtoBytes(s.orig || s.img) });
+    if (s.orig && s.img !== s.orig) files.push({ name: "표시본/" + nm, data: dataURLtoBytes(s.img) });
+  });
+  if (!files.length) { say("저장할 사진이 없습니다"); return; }
+  download(zipMake(files), (state.name || "매뉴얼") + " 이미지.zip");
+  say("사진 " + files.length + "장을 묶어 저장했습니다");
+}
+
+/* ── 파워포인트 (angela 요구 5번) ── */
+const EMU = 914400;                     // 1인치
+const SW = 13.333 * EMU, SH = 7.5 * EMU; // 16:9
+
+function pptSlideXml(s, num, imgRel) {
+  const pad = 0.55 * EMU;
+  const titleH = 0.9 * EMU;
+  const descH = s.desc ? 0.75 * EMU : 0;
+  const top = pad + titleH + descH + 0.1 * EMU;
+  const availH = SH - top - pad;
+  const availW = SW - pad * 2;
+  let pic = "";
+  if (imgRel) {
+    const r = Math.min(availW / s.iw, availH / s.ih);
+    const w = Math.round(s.iw * r), h = Math.round(s.ih * r);
+    const x = Math.round((SW - w) / 2);
+    pic =
+      '<p:pic><p:nvPicPr><p:cNvPr id="4" name="shot"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr>' +
+      '<p:blipFill><a:blip r:embed="' + imgRel + '"/><a:stretch><a:fillRect/></a:stretch></p:blipFill>' +
+      '<p:spPr><a:xfrm><a:off x="' + x + '" y="' + Math.round(top) + '"/>' +
+      '<a:ext cx="' + w + '" cy="' + h + '"/></a:xfrm>' +
+      '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic>';
+  }
+  const tx = (id, name, x, y, cx, cy, text, size, bold, color) =>
+    '<p:sp><p:nvSpPr><p:cNvPr id="' + id + '" name="' + name + '"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr>' +
+    '<p:spPr><a:xfrm><a:off x="' + Math.round(x) + '" y="' + Math.round(y) + '"/>' +
+    '<a:ext cx="' + Math.round(cx) + '" cy="' + Math.round(cy) + '"/></a:xfrm>' +
+    '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>' +
+    '<p:txBody><a:bodyPr wrap="square"><a:normAutofit/></a:bodyPr><a:lstStyle/>' +
+    '<a:p><a:pPr algn="l"/><a:r><a:rPr lang="ko-KR" sz="' + size + '"' + (bold ? ' b="1"' : '') +
+    ' dirty="0"><a:solidFill><a:srgbClr val="' + color + '"/></a:solidFill>' +
+    '<a:latin typeface="Malgun Gothic"/><a:ea typeface="Malgun Gothic"/></a:rPr>' +
+    '<a:t>' + esc(text) + '</a:t></a:r></a:p></p:txBody></p:sp>';
+
+  let head, desc;
+  if (s.cover) {
+    head = tx(2, "title", pad, SH * 0.36, SW - pad * 2, titleH * 1.4, s.title, 4000, true, "111111");
+    desc = s.desc ? tx(3, "desc", pad, SH * 0.36 + titleH * 1.4, SW - pad * 2, 0.7 * EMU, s.desc, 1600, false, "555555") : "";
+  } else if (s.tail) {
+    head = "";
+    desc = tx(3, "desc", pad, SH * 0.45, SW - pad * 2, 1.2 * EMU, s.desc, 1600, false, "555555");
+  } else if (num) {
+    head = tx(2, "title", pad, pad * 0.7, SW - pad * 2, titleH, num + ". " + (s.title || ""), 2400, true, "111111");
+    desc = s.desc ? tx(3, "desc", pad, pad * 0.7 + titleH, SW - pad * 2, descH, s.desc, 1400, false, "444444") : "";
+  } else {
+    head = tx(2, "title", pad, SH * 0.42, SW - pad * 2, titleH, s.title || "", 3600, true, "111111");
+    desc = "";
+  }
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" ' +
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
+    'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">' +
+    '<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>' +
+    '<p:grpSpPr/>' + head + desc + pic +
+    '</p:spTree></p:cSld><p:clrMapOvr><a:overrideClrMapping bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" ' +
+    'accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" ' +
+    'accent6="accent6" hlink="hlink" folHlink="folHlink"/></p:clrMapOvr></p:sld>';
+}
+
+async function exportPPT() {
+  const slides = [];
+  const F = state.form || {};
+  if (F.org || F.sub || F.intro) {            // 양식이 있으면 표지 한 장
+    slides.push({ cover: true, title: state.name || "매뉴얼",
+                  desc: [F.org, F.sub].filter(Boolean).join("  ·  "), num: 0 });
+  }
+  let n = 0;
+  for (const s of live()) {
+    if (s.sec) { slides.push({ title: s.title || "섹션", desc: "", num: 0 }); continue; }
+    n++;
+    const item = { title: s.title || "", desc: s.desc || "", num: n, img: s.img };
+    if (s.img) {
+      const dim = await new Promise(res => {
+        const im = new Image();
+        im.onload = () => res({ w: im.naturalWidth, h: im.naturalHeight });
+        im.onerror = () => res({ w: 1200, h: 750 });
+        im.src = s.img;
+      });
+      item.iw = dim.w; item.ih = dim.h;
+    }
+    slides.push(item);
+  }
+  if (F.outro) slides.push({ title: "", desc: F.outro, num: 0, tail: true });
+  if (!slides.length) { say("먼저 단계를 만들어 주세요"); return; }
+
+  const files = [];
+  const push = (name, str) => files.push({ name, data: enc.encode(str) });
+
+  push("[Content_Types].xml",
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Default Extension="png" ContentType="image/png"/>' +
+    '<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>' +
+    '<Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>' +
+    '<Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>' +
+    '<Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>' +
+    slides.map((_, i) => '<Override PartName="/ppt/slides/slide' + (i + 1) +
+      '.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>').join("") +
+    '</Types>');
+
+  push("_rels/.rels",
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/>' +
+    '</Relationships>');
+
+  push("ppt/presentation.xml",
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" ' +
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
+    'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">' +
+    '<p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rIdMaster"/></p:sldMasterIdLst>' +
+    '<p:sldIdLst>' + slides.map((_, i) =>
+      '<p:sldId id="' + (256 + i) + '" r:id="rIdSlide' + (i + 1) + '"/>').join("") + '</p:sldIdLst>' +
+    '<p:sldSz cx="' + Math.round(SW) + '" cy="' + Math.round(SH) + '"/>' +
+    '<p:notesSz cx="' + Math.round(SH) + '" cy="' + Math.round(SW) + '"/></p:presentation>');
+
+  push("ppt/_rels/presentation.xml.rels",
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rIdMaster" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>' +
+    slides.map((_, i) => '<Relationship Id="rIdSlide' + (i + 1) +
+      '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide' + (i + 1) + '.xml"/>').join("") +
+    '</Relationships>');
+
+  const emptyTxStyles = '<p:txStyles><p:titleStyle/><p:bodyStyle/><p:otherStyle/></p:txStyles>';
+  push("ppt/slideMasters/slideMaster1.xml",
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<p:sldMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" ' +
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
+    'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">' +
+    '<p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill><a:effectLst/></p:bgPr></p:bg>' +
+    '<p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/></p:spTree></p:cSld>' +
+    '<p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" ' +
+    'accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/>' +
+    '<p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rIdLayout"/></p:sldLayoutIdLst>' +
+    emptyTxStyles + '</p:sldMaster>');
+  push("ppt/slideMasters/_rels/slideMaster1.xml.rels",
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rIdLayout" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>' +
+    '<Relationship Id="rIdTheme" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme1.xml"/>' +
+    '</Relationships>');
+
+  push("ppt/slideLayouts/slideLayout1.xml",
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" ' +
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
+    'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" type="blank" preserve="1">' +
+    '<p:cSld name="빈 화면"><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>' +
+    '<p:grpSpPr/></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>');
+  push("ppt/slideLayouts/_rels/slideLayout1.xml.rels",
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rIdM" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/>' +
+    '</Relationships>');
+
+  const dk = (n2, v) => '<a:' + n2 + '><a:srgbClr val="' + v + '"/></a:' + n2 + '>';
+  push("ppt/theme/theme1.xml",
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="기본">' +
+    '<a:themeElements><a:clrScheme name="기본">' +
+    dk("dk1", "111111") + dk("lt1", "FFFFFF") + dk("dk2", "444444") + dk("lt2", "EEEEEE") +
+    dk("accent1", "F0B429") + dk("accent2", "3B82F6") + dk("accent3", "10B981") +
+    dk("accent4", "EF4444") + dk("accent5", "8B5CF6") + dk("accent6", "F59E0B") +
+    dk("hlink", "0563C1") + dk("folHlink", "954F72") + '</a:clrScheme>' +
+    '<a:fontScheme name="기본"><a:majorFont><a:latin typeface="Malgun Gothic"/><a:ea typeface="Malgun Gothic"/><a:cs typeface=""/></a:majorFont>' +
+    '<a:minorFont><a:latin typeface="Malgun Gothic"/><a:ea typeface="Malgun Gothic"/><a:cs typeface=""/></a:minorFont></a:fontScheme>' +
+    '<a:fmtScheme name="기본"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill>' +
+    '<a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:fillStyleLst>' +
+    '<a:lnStyleLst><a:ln><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln>' +
+    '<a:ln><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln>' +
+    '<a:ln><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln></a:lnStyleLst>' +
+    '<a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle>' +
+    '<a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst>' +
+    '<a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill>' +
+    '<a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:bgFillStyleLst>' +
+    '</a:fmtScheme></a:themeElements></a:theme>');
+
+  slides.forEach((s, i) => {
+    const hasImg = !!s.img;
+    push("ppt/slides/slide" + (i + 1) + ".xml", pptSlideXml(s, s.num, hasImg ? "rIdImg" : null));
+    push("ppt/slides/_rels/slide" + (i + 1) + ".xml.rels",
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rIdL" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>' +
+      (hasImg ? '<Relationship Id="rIdImg" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/img' + (i + 1) + '.png"/>' : '') +
+      '</Relationships>');
+    if (hasImg) files.push({ name: "ppt/media/img" + (i + 1) + ".png", data: dataURLtoBytes(s.img) });
+  });
+
+  download(zipMake(files), (state.name || "매뉴얼") + ".pptx");
+  say("파워포인트로 저장했습니다 — 슬라이드 " + slides.length + "장");
+}
+
+// 내보낼 때 실제로 나가는 것만 (빼기 한 섹션과 그 아래 단계는 뺀다)
+function live() {
+  const out = []; let off = false;
+  for (const s of state.steps) {
+    if (s.sec) { off = !!s.off; if (!off) out.push(s); continue; }
+    if (!off) out.push(s);
+  }
+  return out;
+}
+
+/* 글을 가운데에서 자른다. 문장 끝을 먼저 찾고, 없으면 띄어쓰기 자리로 간다.
+   가운데에 가장 가까운 자리를 고르는 이유: 한쪽만 남는 나누기는 나눈 보람이 없다. */
+function cutText(t) {
+  t = String(t || "").trim();
+  if (t.length < 10) return null;
+  const cuts = [];
+  const re = /[.!?。]\s+|\n+|다\.\s*/g;
+  let m;
+  while ((m = re.exec(t))) {
+    const at = m.index + m[0].length;
+    if (at > 2 && at < t.length - 2) cuts.push(at);
+  }
+  if (!cuts.length && t.length >= 20) {
+    const re2 = /\s+/g;
+    while ((m = re2.exec(t))) {
+      const at = m.index + m[0].length;
+      if (at > 4 && at < t.length - 4) cuts.push(at);
+    }
+  }
+  if (!cuts.length) return null;
+  const mid = t.length / 2;
+  const at = cuts.reduce((a, b) => (Math.abs(b - mid) < Math.abs(a - mid) ? b : a));
+  return [t.slice(0, at).trim(), t.slice(at).trim()];
+}
+
+/* ── 한 장짜리 문서로 내보내기: 상용은 링크로 공유한다. 우리는 서버가 없으니
+   혼자 도는 HTML 파일 하나를 준다. 받는 사람은 두 번 눌러 열면 끝이다. */
+function exportHTML() {
+  const list = live();
+  if (!list.length) { say("먼저 단계를 만들어 주세요"); return; }
+  const F = state.form || {};
+  const esc2 = t => String(t || "").replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
+  let n = 0;
+  const body = list.map(s2 => {
+    if (s2.sec) return '<h2>' + esc2(s2.title || "섹션") + '</h2>';
+    n++;
+    const imgs = [s2.img].concat(s2.extra || []).filter(Boolean)
+      .map((u, k) => '<img src="' + u + '" alt="' +
+        esc2(n + "번째 단계 화면" + (k ? " " + (k + 1) : "") + (s2.title ? " — " + s2.title : "")) + '">').join("");
+    return '<section><h3><b>' + n + '</b>' + esc2(s2.title) + '</h3>' +
+      (s2.desc ? '<p>' + esc2(s2.desc) + '</p>' : '') + imgs + '</section>';
+  }).join("");
+
+  const html = '<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<title>' + esc2(state.name || "매뉴얼") + '</title><style>' +
+    'body{margin:0;background:#fff;color:#1a1d20;font:17px/1.5 "Malgun Gothic",-apple-system,sans-serif;' +
+    'word-break:keep-all;padding:40px 20px 80px}' +
+    'main{max-width:760px;margin:0 auto}' +
+    '.org{color:#666;font-size:13px;letter-spacing:.06em}' +
+    'h1{font-size:30px;margin:6px 0 4px}.sub{color:#555;font-size:15px}' +
+    '.intro{color:#333;font-size:14px;margin:26px 0 40px;white-space:pre-wrap}' +
+    'h2{font-size:15px;color:#b07d10;letter-spacing:.05em;margin:44px 0 6px}' +
+    'section{padding:20px 0;border-top:1px solid #e6e8ea}' +
+    'h3{font-size:19px;margin:0;display:flex;gap:12px;align-items:baseline}' +
+    'h3 b{flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:#f2f3f5;color:#b07d10;' +
+    'font:600 14px/28px ui-monospace,monospace;text-align:center}' +
+    'p{color:#444;margin:8px 0 0 40px}' +
+    'img{display:block;margin:14px 0 0 40px;max-width:calc(100% - 40px);border:1px solid #e0e2e4;border-radius:6px}' +
+    '.outro{margin-top:56px;padding-top:16px;border-top:1px solid #e6e8ea;color:#666;font-size:13px;white-space:pre-wrap}' +
+    '@media print{body{padding:0}section{break-inside:avoid}@page{margin:18mm 16mm}}' +
+    '</style></head><body><main>' +
+    (F.org ? '<div class="org">' + esc2(F.org) + '</div>' : '') +
+    '<h1>' + esc2(state.name || "매뉴얼") + '</h1>' +
+    (F.sub ? '<div class="sub">' + esc2(F.sub) + '</div>' : '') +
+    (F.intro ? '<div class="intro">' + esc2(F.intro) + '</div>' : '') +
+    body +
+    (F.outro ? '<div class="outro">' + esc2(F.outro) + '</div>' : '') +
+    '</main></body></html>';
+
+  download(new Blob([html], { type: "text/html" }), (state.name || "매뉴얼") + ".html");
+  say("파일 하나로 내보냈습니다 — 받는 사람은 두 번 눌러 열면 됩니다");
+}
+
+/* ── 되돌리기: 안 찍힌 것을 꺼낸다 (상용은 유료로 판다) ── */
+function openRewind() {
+  const box = $("#rewgrid");
+  box.innerHTML = "";
+  if (!REWIND.keep.length) {
+    box.innerHTML = '<div id="rewempty">아직 들고 있는 화면이 없습니다. 화면 찍기를 시작하면 최근 3분이 쌓입니다.</div>';
+  } else {
+    const now = Date.now();
+    for (let i = REWIND.keep.length - 1; i >= 0; i--) {
+      const k = REWIND.keep[i];
+      const el = document.createElement("div");
+      el.className = "rewit";
+      const sec = Math.round((now - k.t) / 1000);
+      el.innerHTML = '<img alt=""><div class="ago">' + (sec < 60 ? sec + "초 전" : Math.round(sec / 60) + "분 전") + '</div>';
+      el.querySelector("img").src = k.thumb;
+      el.onclick = () => {
+        state.steps.push({ title: "", desc: "", img: k.thumb, rewound: true });
+        render(); save();
+        $("#rew").classList.remove("on");
+        say("아까 그 화면을 단계로 넣었습니다 — 제목을 적으세요");
+        requestAnimationFrame(() => {
+          const last = document.querySelector(".step:last-child .stitle");
+          if (last) { last.focus(); last.scrollIntoView({ block: "center", behavior: "smooth" }); }
+        });
+      };
+      box.appendChild(el);
+    }
+  }
+  $("#rew").classList.add("on");
+}
+$("#rew-close").onclick = () => $("#rew").classList.remove("on");
+
+/* ── 양식: 회사·부서마다 다른 겉을 갈아끼운다 (angela 요구 7번) ── */
+const FORM_KEYS = ["name", "org", "sub", "intro", "outro"];
+let forms = [];
+
+function loadForms() {
+  try { forms = JSON.parse(localStorage.getItem("manualForms") || "[]"); } catch (e) { forms = []; }
+  if (!Array.isArray(forms)) forms = [];
+}
+function saveForms() {
+  try { localStorage.setItem("manualForms", JSON.stringify(forms)); } catch (e) {}
+}
+function readForm() {
+  const f = {};
+  FORM_KEYS.forEach(k => f[k] = $("#f-" + k).value.trim());
+  return f;
+}
+function writeForm(f) {
+  FORM_KEYS.forEach(k => $("#f-" + k).value = (f && f[k]) || "");
+}
+function applyForm(f) {
+  state.form = f || null;
+  paintCover();
+  save();
+}
+function paintCover() {
+  const f = state.form || {};
+  $("#cover-org").textContent = f.org || "";
+  $("#cover-title").textContent = state.name || $("#docname").value || "";
+  $("#cover-sub").textContent = f.sub || "";
+  $("#cover-intro").textContent = f.intro || "";
+  $("#outro").textContent = f.outro || "";
+}
+function renderForms() {
+  const box = $("#formlist");
+  box.innerHTML = forms.length
+    ? '<div class="flabel" style="margin-bottom:8px">저장해 둔 양식</div>'
+    : '<div class="flabel">아직 저장해 둔 양식이 없습니다. 위를 채우고 «양식으로 저장»을 누르세요.</div>';
+  forms.forEach((f, i) => {
+    const el = document.createElement("div");
+    el.className = "fitem";
+    el.innerHTML =
+      '<div class="nm">' + (f.name || "이름 없는 양식") +
+        (f.org ? ' <span class="sub">· ' + f.org + '</span>' : '') + '</div>' +
+      '<button data-a="use">쓰기</button><button data-a="edit">고치기</button><button data-a="del">삭제</button>';
+    el.querySelectorAll("[data-a]").forEach(b => b.onclick = () => {
+      const a = b.dataset.a;
+      if (a === "use") { writeForm(f); applyForm(f); closeForm(); say("«" + (f.name || "양식") + "» 을(를) 씁니다"); }
+      else if (a === "edit") { writeForm(f); say("고친 뒤 «양식으로 저장»을 누르면 덮어씁니다"); }
+      else if (a === "del") { forms.splice(i, 1); saveForms(); renderForms(); say("양식을 지웠습니다"); }
+    });
+    box.appendChild(el);
+  });
+}
+function openForm() {
+  loadForms();
+  writeForm(state.form);
+  renderForms();
+  $("#form").classList.add("on");
+  $("#f-name").focus();
+}
+function closeForm() { $("#form").classList.remove("on"); }
+
+$("#btn-form").onclick = openForm;
+$("#btn-box").onclick = () => boxShow(true);
+$("#b-close").onclick = () => boxShow(false);
+$("#b-new").onclick = boxNew;
+$("#b-copy").onclick = boxCopy;
+$("#boxlist").onclick = e => {
+  const b = e.target.closest("button[data-box]");
+  if (!b) return;
+  const id = b.dataset.id;
+  if (b.dataset.box === "open") boxOpenDoc(id);
+  if (b.dataset.box === "del") boxRemove(id);
+  if (b.dataset.box === "rename") boxRename(id);
+};
+$("#f-close").onclick = closeForm;
+$("#f-apply").onclick = () => { applyForm(readForm()); closeForm(); say("이 양식으로 씁니다 — 인쇄·PPT에 표지가 붙습니다"); };
+$("#f-save").onclick = () => {
+  const f = readForm();
+  if (!f.name) { say("양식 이름을 먼저 적어 주세요"); $("#f-name").focus(); return; }
+  const at = forms.findIndex(x => x.name === f.name);
+  if (at >= 0) forms[at] = f; else forms.push(f);
+  saveForms(); renderForms(); applyForm(f);
+  say("«" + f.name + "» 양식을 저장했습니다");
+};
+$("#f-export").onclick = () => {
+  loadForms();
+  if (!forms.length) { say("내보낼 양식이 없습니다"); return; }
+  const blob = new Blob([JSON.stringify({ forms })], { type: "application/json" });
+  download(blob, "매뉴얼 양식 " + forms.length + "개.manualform.json");
+  say("양식 " + forms.length + "개를 파일로 내보냈습니다 — 다른 사람에게 주면 그대로 씁니다");
+};
+$("#f-import").onclick = () => $("#forminput").click();
+$("#forminput").onchange = e => {
+  const file = e.target.files[0]; e.target.value = "";
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      const list = Array.isArray(d) ? d : (d && d.forms);
+      if (!Array.isArray(list) || !list.length) throw 0;
+      loadForms();
+      let added = 0;
+      list.forEach(f => {
+        if (!f || !f.name) return;
+        const at = forms.findIndex(x => x.name === f.name);
+        if (at >= 0) forms[at] = f; else forms.push(f);
+        added++;
+      });
+      saveForms(); renderForms();
+      say("양식 " + added + "개를 불러왔습니다");
+    } catch (err) { say("이 파일은 양식 파일이 아닙니다"); }
+  };
+  r.readAsText(file);
+};
+
+/* ── 배선 ── */
+$("#shoot").onclick = shoot;
+$("#autobtn").onclick = () => {
+  if (WATCH.on) { watchStop(); say("자동 촬영을 껐습니다 — 이제 직접 찍으세요"); }
+  else { watchStart(); say("자동 촬영을 켰습니다"); }
+};
+$("#rewbtn").onclick = openRewind;
+$("#pausebtn2").onclick = () => {
+  state.paused = !state.paused;
+  $("#pausebtn2").textContent = state.paused ? "다시 시작" : "잠시 멈춤";
+  $("#pausebtn2").classList.toggle("on", state.paused);
+  say(state.paused ? "멈췄습니다 — 담기지 않습니다" : "다시 담습니다");
+};
+$("#btn-sec").onclick = () => {
+  state.steps.push({ sec: true, title: "" });
+  render(); save();
+  requestAnimationFrame(() => {
+    const t = document.querySelector("#steps .sec:last-of-type .sectitle");
+    if (t) { t.focus(); t.scrollIntoView({ block: "center", behavior: "smooth" }); }
+  });
+  say("섹션을 넣었습니다 — 이름을 적으세요");
+};
+
+$("#btn-save").onclick = saveFile;
+$("#spill-save").onclick = saveFile;
+/* 내보내기 목록: 무엇을 고를지가 어려우므로 언제 쓰는지를 같이 보여 준다 */
+const OUT = { print: () => { if (!live().length) { say("먼저 단계를 만들어 주세요"); return; } window.print(); }, ppt: exportPPT, html: exportHTML, imgs: exportImages };
+function outMenu(open) {
+  const m = $("#outmenu");
+  const on = open === undefined ? m.hidden : open;
+  m.hidden = !on;
+  $("#btn-out").setAttribute("aria-expanded", on ? "true" : "false");
+}
+$("#btn-out").onclick = e => { e.stopPropagation(); outMenu(); };
+$("#outmenu").onclick = e => {
+  const b = e.target.closest("button[data-out]");
+  if (!b) return;
+  outMenu(false);
+  OUT[b.dataset.out]();
+};
+document.addEventListener("click", () => { if (!$("#outmenu").hidden) outMenu(false); });
+
+$("#btn-open").onclick = () => $("#fileinput").click();
+$("#fileinput").onchange = e => { if (e.target.files[0]) openFile(e.target.files[0]); e.target.value = ""; };
+$("#docname").addEventListener("input", () => { save(); paintCover(); });
+
+addEventListener("keydown", e => {
+  const typing = /^(INPUT|TEXTAREA)$/.test(e.target.tagName) || e.target.isContentEditable;
+  if (e.code === "Space" && !typing) { e.preventDefault(); shoot(); }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !typing) { e.preventDefault(); undo(); }
+  if (e.key === "Escape") {
+    if ($("#mark").classList.contains("on")) $("#mark-done").click();
+    else if ($("#rew").classList.contains("on")) $("#rew").classList.remove("on");
+    else if ($("#box").classList.contains("on")) boxShow(false);
+    else if ($("#form").classList.contains("on")) closeForm();
+  }
+});
+
+addEventListener("beforeunload", e => {
+  if (state.steps.length && !state.saved) { e.preventDefault(); e.returnValue = ""; }
+});
+load();
+loadForms();
+paintCover();
+render();
+</script>
+</body>
+</html>
