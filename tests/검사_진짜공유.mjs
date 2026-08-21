@@ -64,7 +64,10 @@ const board = "data:text/html;charset=utf-8," + encodeURIComponent(`<!DOCTYPE ht
   await p1.waitForTimeout(500);
 
   await p1.click("#shoot");
-  await p1.waitForTimeout(1500);
+  // 첫 장면이 올 때까지 기다린다. 안 기다리면 0×0 을 재고 흔들린다 (2026-08-21 실측)
+  await p1.waitForFunction(() => (typeof video !== "undefined" && video && video.videoWidth > 0),
+                           { timeout: 20000 }).catch(() => {});
+  await p1.waitForTimeout(500);
 
   const on = await p1.evaluate(() => WATCH.on && !!WATCH.timer);
   const kind = await p1.evaluate(() => {
@@ -129,7 +132,9 @@ const board = "data:text/html;charset=utf-8," + encodeURIComponent(`<!DOCTYPE ht
   await p.waitForTimeout(500);
 
   await p.click("#shoot");
-  await p.waitForTimeout(1200);
+  await p.waitForFunction(() => (typeof video !== "undefined" && video && video.videoWidth > 0),
+                          { timeout: 20000 }).catch(() => {});
+  await p.waitForTimeout(500);
   const got = await p.evaluate(() => !!stream);
   ok("이 창 자체를 고른 상황을 만들었다", got, got ? "자기 창 공유 중" : "안 열림");
 
