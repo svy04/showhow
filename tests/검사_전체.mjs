@@ -51,7 +51,7 @@ globalThis.btoa = s=>Buffer.from(s,"binary").toString("base64");
 
 const say = m => results.push(m);
 const HOOK = `
-return { state, shoot, act, render, save, saveFile, exportPPT, exportImages, applyForm, zipMake, live, exportHTML, cutText,
+return { state, shoot, act, render, save, saveFile, exportPPT, exportImages, applyForm, zipMake, live, exportHTML, cutText, loopWatch, busyScreen,
   WATCH, watchTick, watchStart, watchStop, REWIND, rewindPush, openRewind, changedBox, UNDO, undo, snap, SPOTWORD, renderSide,
   _fakeCapture() { stream = { getVideoTracks: () => [{ addEventListener() {} }] };
                    video = { videoWidth: 1200, videoHeight: 750 }; } };`;
@@ -129,7 +129,11 @@ api._fakeCapture();
 globalThis.video = { videoWidth: 1200, videoHeight: 750 };
 api.watchStart();
 const tick = api.watchTick;
-const feed = (v, times) => { for (let i = 0; i < times; i++) { globalThis.__fakePixel = v; tick(); } };
+// 실제와 같은 조건으로 재려면 시간이 흘러야 한다. 눈금 하나 = 140밀리초.
+let 시계 = 1000;
+api.WATCH.now = () => 시계;
+const 눈금 = () => { 시계 += 140; };
+const feed = (v, times) => { for (let i = 0; i < times; i++) { globalThis.__fakePixel = v; 눈금(); tick(); } };
 
 // 잠잠 → 크게 바뀜 → 잠잠  = 한 장
 globalThis.__fakePixel = 30; feed(30, 5);
@@ -200,6 +204,59 @@ ok("글자르기: 첫 자리 말고 가운데 자리", (() => { const r = api.cu
 ok("글자르기: 짧으면 안 자른다", api.cutText("저장") === null);
 ok("글자르기: 빈 글도 안 죽는다", api.cutText(undefined) === null);
 
+/* ── 스스로 찍는 고리 끊기 ──
+   고른 화면에 이 창이 보이면 한 장 담길 때마다 화면이 또 바뀌어 끝없이 담긴다.
+   진짜 화면 공유로 재 보니 3~6눈금마다 한 장이었다 (검사_진짜공유.mjs).
+   사람이 하는 일은 그보다 뜸하므로, 그렇게 빠르면 고리로 보고 멈춘다. */
+S.steps.length = 0;
+api._fakeCapture();
+globalThis.video = { videoWidth: 1200, videoHeight: 750 };
+api.watchStart(); api.WATCH.now = () => 시계;
+const tick2 = api.watchTick;
+const feed2 = (v, times) => { for (let i = 0; i < times; i++) { globalThis.__fakePixel = v; 눈금(); tick2(); } };
+
+// 사람이 하는 속도 — 담긴 사이가 뜸하다
+globalThis.__fakePixel = 30; feed2(30, 5);
+feed2(200, 2); feed2(200, 7);
+const 사람1 = S.steps.length;
+feed2(60, 2); feed2(60, 7);
+feed2(150, 2); feed2(150, 7);
+ok("뜸하게 담기면 안 끊는다", api.WATCH.on && S.steps.length === 사람1 + 2,
+   S.steps.length + "장 · 자동 " + (api.WATCH.on ? "켜짐" : "꺼짐"));
+
+// 고리 속도 — 담긴 사이가 6눈금 이내로 잇따른다
+api.watchStop(); S.steps.length = 0; api.watchStart(); api.WATCH.now = () => 시계;
+globalThis.__fakePixel = 30; feed2(30, 3);
+for (let r = 0; r < 6 && api.WATCH.on; r++) { feed2(r % 2 ? 200 : 40, 1); feed2(r % 2 ? 200 : 40, 6); }
+ok("고리 속도로 담기면 자동을 끈다", !api.WATCH.on, S.steps.length + "장에서 멈춤");
+ok("왜 껐는지 말해 준다", /빠르게|자기 자신/.test(results[results.length - 1] || ""),
+   (results[results.length - 1] || "").slice(0, 46));
+ok("고리를 끊어도 담긴 것은 남는다", S.steps.length > 0, S.steps.length + "장");
+ok("다시 켜면 셈이 처음부터", (api.watchStart(), api.WATCH.fast === 0 && api.WATCH.lastShot === 0));
+
+/* ── 쉬지 않는 화면(영상·스크롤)에서 같은 장면이 겹쳐 와도 안 속는가 ──
+   화면 공유는 같은 장면을 다시 보낸다. 그 한두 눈금을 "멈췄다"로 읽으면
+   영상 도는 내내 사진이 쌓인다 (2026-08-21 실측 3장). */
+api.watchStop(); S.steps.length = 0; api.watchStart(); api.WATCH.now = () => 시계;
+const tick3 = api.watchTick;
+const put = v => { globalThis.__fakePixel = v; 눈금(); tick3(); };
+
+globalThis.__fakePixel = 30; for (let i = 0; i < 4; i++) put(30);
+let v = 40;
+for (let i = 0; i < 60; i++) {          // 영상: 계속 바뀐다. 다만 다섯 번에 한 번은 같은 장면이 두 번 온다
+  v = 40 + ((i * 37) % 180);
+  put(v);
+  if (i % 5 === 4) { put(v); put(v); }  // 겹쳐 온 장면 두 눈금
+}
+ok("영상 중 같은 장면이 겹쳐 와도 안 담는다", S.steps.length === 0, S.steps.length + "장");
+ok("쉬지 않는 화면으로 알아본다", api.busyScreen(), "최근 눈금 대부분이 움직임");
+const 영상직후 = api.WATCH.videoUntil - 시계;
+
+for (let i = 0; i < 24; i++) put(v);    // 영상이 끝나고 진짜로 멈춘다
+ok("영상이 끝나면 한 장으로 정리된다", S.steps.length === 1, S.steps.length + "장");
+ok("계속 움직이는 동안 사람에게 알린다", results.some(m => /쉬지 않고 움직/.test(m)), "알림 " + (results.some(m => /쉬지 않고 움직/.test(m)) ? "있음" : "없음"));
+ok("영상이었다는 것을 시계로 기억한다", 영상직후 > 0, "영상이 끝난 순간 앞으로 " + Math.round(영상직후 / 100) / 10 + "초 더 영상으로 봄");
+
 console.log("\n" + (fail.length ? "실패 " + fail.length + "건: " + fail.join(" / ") : "전부 통과 (자동 촬영 포함)"));
 /* ── 되돌리기: 안 찍힌 것을 꺼낼 수 있는가 ── */
 S.steps.length = 0;
@@ -207,7 +264,7 @@ api.REWIND.keep.length = 0;
 api.REWIND.tick = 0;
 api._fakeCapture();
 globalThis.video = { videoWidth: 1200, videoHeight: 750 };
-api.watchStart();
+api.watchStart(); api.WATCH.now = () => 시계;
 
 // 화면이 여러 번 바뀌는 동안, 자동 촬영은 일부만 잡고 되돌리기 창고는 계속 쌓인다
 globalThis.__fakePixel = 30; for (let i = 0; i < 4; i++) tick();

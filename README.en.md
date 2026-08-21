@@ -12,7 +12,7 @@
 - **Exports to PDF, PPTX, a standalone HTML file, or raw images.** The PowerPoint file opens and edits like any other.
 - **Cuts per audience.** Mark a section as excluded and it disappears from every export.
 - **Screenshots never leave the machine.** No code in this file sends anything anywhere. It works offline.
-- **Ships with 192 passing tests.** Run `node tests/검사_전부.mjs` yourself.
+- **Ships with 212 passing tests.** 118 of them run in a real browser, and 10 run against a real screen-share stream with nothing stubbed.
 
 ## Try it in 30 seconds
 
@@ -35,7 +35,9 @@ Most screenshot-based manual tools only take a picture **when you click.**
 
 So steps go missing, and you only notice afterwards. Not because editing was late — because no picture was ever taken.
 
-showhow watches **how much the screen changed** instead. It compares frames about 7 times a second and takes one shot when a change starts and then settles.
+showhow watches **how much the screen changed** instead. It compares frames about 7 times a second and takes a shot once the screen has held still for **0.7 seconds**.
+
+That 0.7 second matters. Screen sharing delivers about 5 frames a second while we look 7 times a second, so seeing the same frame two or three times in a row is normal. Read that as "it stopped" and a playing video fills your document with junk. So stillness is measured on a clock, not in ticks.
 
 | While you | Click-based tools | showhow |
 |---|---|---|
@@ -46,7 +48,9 @@ showhow watches **how much the screen changed** instead. It compares frames abou
 | just move the cursor | captured (to be deleted) | ignored |
 | play a video | captured repeatedly | ignored |
 
-The longer the screen kept moving, the longer it must stay still before a shot is taken. That is why scrolling and video do not pile up shots.
+A screen that moved for a long stretch is remembered as "video" for 3 seconds, and during that time it must hold still for 1.5 seconds instead. That is why scrolling and video do not pile up shots.
+
+If the screen never holds still long enough to capture, showhow says so. Press <kbd>Space</kbd> to take one by hand.
 
 ## Shape it
 
@@ -89,26 +93,29 @@ Manuals are kept in a list. Open one, continue it, or duplicate it and edit the 
 
 A banner appears when browser storage fills up. Export a work file and you are safe. Browser storage is not a backup.
 
-## Four things to know
+## Five things to know
 
-1. **Tested on Chrome and Edge.** Firefox and Safari were not run. To check one, open it there and walk through the same steps `tests/검사_촬영.mjs` performs.
-2. **The screen-picker dialog needs a real human click.** That is a browser rule; automation cannot press it. The test suite substitutes only that dialog and runs everything below it for real — see the comment at the top of `tests/검사_촬영.mjs`.
-3. **There is no share-by-link.** There is no server. The standalone HTML export takes its place.
-4. **No audio, no video.** Screenshots and text only.
+1. **Tested on Chrome and Edge.** Firefox and Safari were not run. To check one, open it there and walk through the steps `tests/검사_촬영.mjs` performs.
+2. **The screen-picker dialog needs a real human click.** That is a browser rule; automation cannot press it. `tests/검사_진짜공유.mjs` gets around it with a browser launch flag, so that suite runs against a real screen-share stream with nothing stubbed.
+3. **Sharing a screen that shows this window captures itself.** Every shot lengthens the step list, which changes the screen again. Measured, it settles after about 3 shots; if shots keep coming faster than that, auto-capture switches off and says why.
+4. **There is no share-by-link.** There is no server. The standalone HTML export takes its place.
+5. **No audio, no video.** Screenshots and text only.
 
 ## Run the tests
 
 ```bash
 git clone https://github.com/svy04/showhow.git
 cd showhow
-node tests/검사_전체.mjs        # 56 tests, no browser needed
+node tests/검사_전체.mjs        # 66 tests, no browser needed
 
 npm i -D playwright             # for the browser tests
 npx playwright install msedge
-node tests/검사_전부.mjs        # all 192
+node tests/검사_전부.mjs        # all 212
 ```
 
 `tests/검사_기능표.mjs` checks 18 features found in commercial tools against this source file, so the parity claim is verified by the file rather than by memory.
+
+`tests/검사_진짜공유.mjs` stubs nothing: it captures a real window through real `getDisplayMedia`, and it reproduces the self-capture loop on purpose to prove the guard holds.
 
 ## Hack on it
 
