@@ -46,15 +46,20 @@
     reach.push(...all.map(el => el.id || el.className || el.tagName));
     break;
   }
-  const want = ["shoot", "btn-out", "btn-box", "btn-form", "btn-save", "docname"];
+  const want = ["btn-out", "btn-box", "btn-form", "btn-save", "docname"];
   const missing = want.filter(id => !reach.includes(id));
-  ok("주요 손잡이에 탭으로 닿는다", missing.length === 0, missing.length ? "못 닿음: " + missing.join(", ") : want.length + "개 확인");
+  // 찍기 단추는 자리를 옮겼다(빈 화면은 가운데, 일하는 중에는 위 줄). 어느 쪽이든 **보이고** 닿아야 한다.
+  const 찍기 = ["shoot", "shoot-top"].filter(id => reach.includes(id));
+  if (!찍기.length) missing.push("찍기(shoot / shoot-top 둘 다 못 닿음)");
+  ok("주요 손잡이에 탭으로 닿는다", missing.length === 0,
+     missing.length ? "못 닿음: " + missing.join(", ") : (want.length + 1) + "개 확인 · 찍기=" + 찍기.join(","));
 
   // ⑤ 초점이 눈에 보이는가
-  $("#shoot").focus();
-  const fs = getComputedStyle($("#shoot"));
+  const 찍기단추 = $("#shoot").offsetParent ? $("#shoot") : $("#shoot-top");
+  찍기단추.focus();
+  const fs = getComputedStyle(찍기단추);          // 초점을 준 그 단추를 잰다
   const seen = fs.outlineStyle !== "none" || fs.boxShadow !== "none" ||
-               getComputedStyle($("#shoot"), ":focus-visible").outlineStyle !== "none";
+               getComputedStyle(찍기단추, ":focus-visible").outlineStyle !== "none";
   ok("초점이 어디 있는지 보인다", seen, "테두리 " + fs.outlineStyle + " · 그림자 " + (fs.boxShadow !== "none" ? "있음" : "없음"));
 
   // ⑥ 글자와 바탕의 밝기 차 (읽을 수 있는가)
