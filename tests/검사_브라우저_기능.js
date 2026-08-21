@@ -3,6 +3,13 @@
   const ok = (n, c, e) => out.push((c ? "통과  " : "실패! ") + n + (e ? " — " + e : ""));
   const $ = s => document.querySelector(s);
   const wait = ms => new Promise(r => setTimeout(r, ms));
+  // 속성만 읽으면 CSS 가 이겨서 화면에 그대로 보이는 것을 못 잡는다. 진짜 크기를 잰다.
+  const 보이나 = sel => {
+    const el = typeof sel === "string" ? $(sel) : sel;
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden";
+  };
   const cv = document.createElement("canvas"); cv.width = 600; cv.height = 380;
   const g = cv.getContext("2d");
   const px = c => { g.fillStyle = c; g.fillRect(0, 0, 600, 380); return cv.toDataURL("image/png"); };
@@ -17,6 +24,10 @@
 
   // ── 찾기 ──
   ok("찾기 칸이 있다", !!$("#find"));
+  ok("찾기 줄은 열기 전에는 안 보인다", !보이나("#findbar"));
+  $("#btn-find").click();
+  await wait(150);
+  ok("찾기 단추를 누르면 찾기 줄이 보인다", 보이나("#findbar"));
   $("#find").value = "이름";
   $("#find").dispatchEvent(new Event("input", { bubbles: true }));
   await wait(150);
@@ -103,11 +114,20 @@
   const 번호 = () => [...document.querySelectorAll("#steps .num")];
   번호()[0].onclick({ stopPropagation() {}, shiftKey: false });
   await wait(100);
-  ok("번호를 누르면 골라진다", $("#bulk").classList.contains("on") && $("#bulkn").textContent === "1개 고름",
+  ok("번호를 누르면 골라진다", $("#bulk").classList.contains("on") && $("#bulkn").textContent === "1단계 고름",
      $("#bulkn").textContent);
   번호()[2].onclick({ stopPropagation() {}, shiftKey: true });
   await wait(100);
-  ok("Shift 로 사이가 통째로 골라진다", $("#bulkn").textContent === "3개 고름", $("#bulkn").textContent);
+  ok("Shift 로 사이가 통째로 골라진다", $("#bulkn").textContent === "3단계 고름", $("#bulkn").textContent);
+  // 섹션 머리는 번호 동그라미가 없다 — 이름을 Shift 로 눌러야 골라진다
+  document.querySelector("#steps .sec .sectitle").dispatchEvent(
+    new MouseEvent("click", { bubbles: true, shiftKey: true }));
+  await wait(100);
+  ok("섹션은 이름을 Shift 로 눌러 고른다", /섹션/.test($("#bulkn").textContent), $("#bulkn").textContent);
+  고르기해제();
+  번호()[0].onclick({ stopPropagation() {}, shiftKey: false });
+  번호()[2].onclick({ stopPropagation() {}, shiftKey: true });
+  await wait(100);
   ok("고른 것이 눈에 보인다", document.querySelectorAll("#steps .picked").length === 3,
      document.querySelectorAll("#steps .picked").length + "개 표시");
 
@@ -147,7 +167,10 @@
   const 작은칸 = localStorage.getItem("manualDraft") || "";
   ok("작은 칸에는 글만 넣는다", !작은칸.includes("data:image"),
      Math.round(작은칸.length / 1024) + "KB");
-  ok("사진은 큰 칸에 있다", (await boxAll()).some(d => (d.steps || []).some(s => s.img)));
+  const 이문서 = (await boxAll()).find(d => d.id === state.id);
+  ok("지금 보던 매뉴얼의 사진이 큰 칸에 있다",
+     !!이문서 && (이문서.steps || []).some(s => s.img),
+     이문서 ? (이문서.steps || []).length + "단계" : "큰 칸에 없음");
 
   // ── 내보낸 파일 이름에 날짜 ──
   const d0 = new Date(), z0 = n => String(n).padStart(2, "0");
@@ -165,8 +188,11 @@
   const 문서 = htmlDoc();
   ok("먼저 볼 문서가 만들어진다", 문서.startsWith("<!DOCTYPE html") && 문서.includes("먼저 보기 시험"),
      문서.slice(0, 40));
-  ok("먼저 볼 문서에 단계가 다 들어 있다",
-     state.steps.filter(x => !x.sec).every(x => !x.title || 문서.includes(x.title)));
+  const 넣을것 = state.steps.filter(x => !x.sec);
+  ok("먼저 볼 문서에 제목·설명·사진이 다 들어 있다",
+     넣을것.every(x => (!x.title || 문서.includes(x.title)) && (!x.desc || 문서.includes(x.desc))) &&
+     (문서.match(/<img /g) || []).length === 넣을것.filter(x => x.img).length,
+     (문서.match(/<img /g) || []).length + "장 / " + 넣을것.filter(x => x.img).length + "장");
   let 연주소 = "";
   const 옛열기 = window.open;
   window.open = u => { 연주소 = u; return { focus() {} }; };
@@ -199,7 +225,7 @@
   // 여섯 벌째를 뜨면 가장 오래된 것이 빠진다
   for (let k = 0; k < 6; k++) await 백업("시험" + k);
   const 남은 = (await boxRaw()).filter(x => x.bak && x.of === state.id);
-  ok("예전 판은 다섯 벌까지만 쌓인다", 남은.length <= 5, 남은.length + "벌");
+  ok("예전 판은 다섯 벌까지만 쌓인다", 남은.length >= 1 && 남은.length <= 5, 남은.length + "벌");
 
   // ── 찾아 바꾸기 ──
   docInto({ id: null, name: "바꾸기 시험", steps: [
@@ -307,6 +333,7 @@
     { title: "다른 것", desc: "", img: px("#345") },
   ] });
   await wait(250);
+  찾기줄(true);
   $("#find").value = "청구";
   $("#find").dispatchEvent(new Event("input", { bubbles: true }));
   await wait(150);
@@ -329,14 +356,14 @@
   // ── 찾을 것이 없으면 찾기 칸도 없다 ──
   docInto({ id: null, name: "빈 시험", steps: [] });
   await wait(200);
-  ok("빈 화면에는 찾기 칸이 없다", $("#findwrap").hidden);
+  ok("빈 화면에는 찾기 단추가 화면에서 사라진다", !보이나("#findwrap"), "hidden=" + $("#findwrap").hidden);
   docInto({ id: null, name: "한 단계", steps: [{ title: "혼자", desc: "", img: px("#456") }] });
   await wait(200);
-  ok("한 단계뿐이면 찾기 칸을 안 보인다", $("#findwrap").hidden);
+  ok("한 단계뿐이면 찾기 단추도 안 보인다", !보이나("#findwrap"));
   docInto({ id: null, name: "두 단계", steps: [
     { title: "하나", desc: "", img: px("#123") }, { title: "둘", desc: "", img: px("#234") }] });
   await wait(200);
-  ok("두 단계부터 찾기 칸이 나온다", !$("#findwrap").hidden);
+  ok("두 단계부터 찾기 단추가 나온다", 보이나("#findwrap"));
 
   return out.join("\n");
 })()

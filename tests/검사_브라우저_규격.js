@@ -69,6 +69,8 @@
      날값.모서리.slice(0, 4).join(", ") || "날값 없음");
   ok("간격은 시스템 토큰만 쓴다", 날값.간격.length === 0,
      날값.간격.length + "건 " + 날값.간격.slice(0, 8).join(" | "));
+  ok("색도 시스템 토큰만 쓴다", 날값.색.length === 0,
+     날값.색.length + "건 " + 날값.색.slice(0, 8).join(" | "));
   ok("시스템 토큰을 실제로 쓴다",
      !!getComputedStyle(document.documentElement).getPropertyValue("--colors-primary-normal").trim(),
      "브랜드색 " + getComputedStyle(document.documentElement).getPropertyValue("--colors-primary-normal").trim());

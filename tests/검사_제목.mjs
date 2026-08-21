@@ -126,13 +126,15 @@ if (ready) {
     return { hit, bad, none, kor, korAll, eng, engAll, all: words.length * shapes.length };
   }, WORDS);
 
-  ok("단추 글자를 절반 넘게 맞힌다", score.hit / score.all >= 0.5,
+  // 문턱을 절반(32)에 두면 44가 33으로 떨어져도 통과한다 — 나빠진 것을 못 잡는다.
+  // 실측 44/64 에서 네 개까지만 봐준다.
+  ok("단추 글자를 40개 넘게 맞힌다 (실측 44/64)", score.hit >= 40,
      "맞음 " + score.hit + " · 틀림 " + score.bad + " · 빈칸 " + score.none + " / " + score.all +
      " (한글 " + score.kor + "/" + score.korAll + ")");
   ok("틀린 것보다 맞은 것이 세 배 넘는다", score.hit >= score.bad * 3,
      score.hit + " 대 " + score.bad);
-  ok("한글도 절반 넘게 맞힌다", score.kor / score.korAll >= 0.5, score.kor + "/" + score.korAll);
-  ok("영어도 절반 넘게 맞힌다", score.eng / score.engAll >= 0.5, score.eng + "/" + score.engAll);
+  ok("한글은 24개 넘게 맞힌다 (실측 26/40)", score.kor >= 24, score.kor + "/" + score.korAll);
+  ok("영어는 16개 넘게 맞힌다 (실측 18/24)", score.eng >= 16, score.eng + "/" + score.engAll);
 
   await page.evaluate(() => document.querySelector("#titlebtn").click());
   await page.waitForTimeout(200);

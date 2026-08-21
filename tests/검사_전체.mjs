@@ -391,9 +391,10 @@ ok("큰 변화는 영역이라 부른다", api.SPOTWORD({x:0.1,y:0.1,w:0.5,h:0.5
     ok("작은 칸에 글은 들어간다", raw.includes("단계3"), "제목 남음");
     ok("어느 매뉴얼인지도 남는다", !!globalThis.localStorage.getItem("manualCurrent"));
   }
-  // 파일로 저장하면 알림이 내려간다
+  // 파일로 저장해도 브라우저 저장은 여전히 막혀 있다 — 알림을 내리면 거짓말이 된다.
+  // 알림은 진짜로 큰 칸에 들어갔을 때(boxSave 성공)만 내려간다.
   S.spill = true; api.saveFile();
-  ok("파일로 저장하면 알림이 내려간다", S.spill === false);
+  ok("파일로 저장해도 저장 안 됨 알림은 그대로 남는다", S.spill === true);
   globalThis.localStorage.setItem = realSet;
 }
 
