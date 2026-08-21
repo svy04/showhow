@@ -13,7 +13,7 @@
 - **Cuts per audience.** Mark a section as excluded and it disappears from every export.
 - **Screenshots never leave the machine.** No code in this file sends anything anywhere. It works offline (auto-titles are the one exception — see below).
 - **Drafts the step titles.** It reads the text inside the changed region and fills in a title like "다음 누르기" (press Next). Measured on 64 common buttons: **44 correct**, 10 wrong, 10 blank. The reading happens on your machine.
-- **Ships with 293 passing tests.** 190 of them run in a real browser, and 10 run against a real screen-share stream with nothing stubbed.
+- **Ships with 320 passing tests.** 190 of them run in a real browser, and 10 run against a real screen-share stream with nothing stubbed.
 
 ## Try it in 30 seconds
 
@@ -126,10 +126,12 @@ node tests/검사_전체.mjs        # 66 tests, no browser needed
 
 npm i -D playwright             # for the browser tests
 npx playwright install msedge
-node tests/검사_전부.mjs        # all 293
+node tests/검사_전부.mjs        # all 320
 ```
 
 `tests/검사_기능표.mjs` checks 26 features found in commercial tools against this source file, so the parity claim is verified by the file rather than by memory.
+
+`tests/검사_요청대조.mjs` checks the seven things the original requester asked for — plus the two she gave up on as "probably too hard".
 
 `tests/검사_진짜공유.mjs` stubs nothing: it captures a real window through real `getDisplayMedia`, and it reproduces the self-capture loop on purpose to prove the guard holds.
 
