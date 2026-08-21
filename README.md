@@ -171,7 +171,13 @@ node tests/검사_전부.mjs        # 전부 357건
 
 `index.html` 한 파일에 전부 들어 있습니다. 빌드 도구를 쓰지 않으니 열어서 고치고 브라우저에서 새로 고치면 됩니다.
 
-바깥에서 가져온 것은 하나뿐입니다 — 글자 읽기(`ocr/`, [Tesseract](https://github.com/naptha/tesseract.js), Apache-2.0). 인터넷으로 부르지 않고 저장소 안에 넣어 두었습니다.
+바깥에서 가져온 것은 셋입니다. 전부 저장소 안에 넣어 두어 인터넷으로 부르지 않습니다.
+
+| 무엇 | 어디서 | 라이선스 |
+|---|---|---|
+| 화면 값(색·글자·간격·모서리) | 마이크림 디자인 시스템 | 사내 |
+| 아이콘 38개 | [Lucide](https://lucide.dev) 2,034개 중 골라서 | ISC |
+| 글자 읽기 (`ocr/`) | [Tesseract](https://github.com/naptha/tesseract.js) | Apache-2.0 |
 
 <details>
 <summary>안에 무엇이 들어 있나</summary>
