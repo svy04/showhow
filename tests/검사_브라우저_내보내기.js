@@ -25,6 +25,30 @@
   await wait(50);
 
   const bytes = async b => new Uint8Array(await b.arrayBuffer());
+  // 압축은 안 하고 그대로 담기 때문에(store) 이름을 찾아 바로 꺼낼 수 있다
+  const readEntry = async (b, want) => {
+    const u = await bytes(b), td = new TextDecoder();
+    for (let i = 0; i < u.length - 4; i++) {
+      if (u[i] === 0x50 && u[i + 1] === 0x4B && u[i + 2] === 0x03 && u[i + 3] === 0x04) {
+        const nlen = u[i + 26] | (u[i + 27] << 8);
+        const elen = u[i + 28] | (u[i + 29] << 8);
+        const name = td.decode(u.slice(i + 30, i + 30 + nlen));
+        const size = u[i + 18] | (u[i + 19] << 8) | (u[i + 20] << 16) | (u[i + 21] << 24);
+        if (name === want) {
+          const at = i + 30 + nlen + elen;
+          return td.decode(u.slice(at, at + size));
+        }
+      }
+    }
+    return null;
+  };
+  const xmlOK = t => {
+    if (!t) return "부품 없음";
+    const d = new DOMParser().parseFromString(t, "application/xml");
+    const err = d.querySelector("parsererror");
+    return err ? err.textContent.slice(0, 70) : "";
+  };
+
   const nameList = async b => {                     // ZIP 안에 든 파일 이름을 읽는다
     const u = await bytes(b), td = new TextDecoder(), names = [];
     for (let i = 0; i < u.length - 4; i++) {
@@ -63,6 +87,58 @@
   ok("사진 묶음이 나온다", got.length === 1);
   ok("단계마다 사진이 한 장씩", zn.filter(f => /\.png$/.test(f)).length === 2, zn.join(" / ").slice(0, 90));
   ok("순서가 이름에 남는다", zn.some(f => /01/.test(f)) && zn.some(f => /02/.test(f)));
+
+  ok("파워포인트 XML 이 문법에 맞다", !(await xmlOK(await readEntry(ppt, "ppt/slides/slide2.xml"))),
+     (await xmlOK(await readEntry(ppt, "ppt/slides/slide2.xml"))) || "슬라이드 통과");
+  ok("파워포인트 뼈대 XML 도 문법에 맞다",
+     !(await xmlOK(await readEntry(ppt, "ppt/presentation.xml"))) &&
+     !(await xmlOK(await readEntry(ppt, "[Content_Types].xml"))));
+
+  // ②-2 워드 문서
+  got.length = 0;
+  await exportDOCX();
+  await wait(400);
+  ok("워드 파일이 나온다", got.length === 1, got.length + "개 · " + (got[0] ? Math.round(got[0].size / 1024) + "KB" : ""));
+  const dn = await nameList(got[0]);
+  ok("워드 뼈대가 다 들어 있다",
+     ["[Content_Types].xml", "_rels/.rels", "word/document.xml", "word/_rels/document.xml.rels"]
+       .every(f => dn.includes(f)), dn.length + "개 부품");
+  ok("사진이 문서 안에 들어간다", dn.filter(f => /^word\/media\/image\d+\.png$/.test(f)).length === 2,
+     dn.filter(f => /^word\/media\//.test(f)).length + "장");
+  const dtext = new TextDecoder().decode(await bytes(got[0]));
+  ok("워드에 한글이 그대로 들어간다", dtext.includes("프로그램을 연다") && dtext.includes("마이크림 마케팅팀"));
+  ok("워드에서도 뺀 섹션은 빠진다", !dtext.includes("비밀 설정"));
+  ok("단계마다 번호가 붙는다", dtext.includes("1. 프로그램을 연다") && dtext.includes("2. 이름을 넣는다"));
+  ok("사진 자리와 연결이 짝이 맞는다",
+     (dtext.match(/r:embed="rId\d+"/g) || []).length === 2 &&
+     (dtext.match(/relationships\/image/g) || []).length === 2);
+  ok("사진에 대체 글이 붙는다", /descr="[^"]*단계 화면/.test(dtext));
+  ok("종이 크기가 A4다", dtext.includes('w:w="11906"') && dtext.includes('w:h="16838"'));
+  ok("파일 이름이 문서 이름을 따른다", String(got.name || "").endsWith(".docx"), got.name);
+  const dxml = await readEntry(got[0], "word/document.xml");
+  ok("워드 XML 이 문법에 맞다", !(await xmlOK(dxml)), (await xmlOK(dxml)) || "본문 통과");
+  ok("워드 연결표 XML 도 문법에 맞다",
+     !(await xmlOK(await readEntry(got[0], "word/_rels/document.xml.rels"))) &&
+     !(await xmlOK(await readEntry(got[0], "[Content_Types].xml"))));
+  ok("본문에 문단이 실제로 들어 있다", (dxml.match(/<w:p>/g) || []).length >= 8,
+     (dxml.match(/<w:p>/g) || []).length + "문단");
+
+  // ②-3 글과 그림 (마크다운)
+  got.length = 0;
+  exportMD();
+  await wait(300);
+  const mn = await nameList(got[0]);
+  ok("마크다운 묶음이 나온다", got.length === 1, mn.join(" / ").slice(0, 80));
+  ok("글 파일과 그림이 함께 나온다",
+     mn.some(f => /\.md$/.test(f)) && mn.filter(f => /\.png$/.test(f)).length === 2);
+  const mdtext = await (async () => {
+    const u = await bytes(got[0]), td = new TextDecoder();
+    const at = new Uint8Array(u).findIndex ? 0 : 0;
+    return td.decode(u);
+  })();
+  ok("마크다운에 제목과 단계가 들어간다",
+     mdtext.includes("# 설치 안내서") && mdtext.includes("### 1. 프로그램을 연다"));
+  ok("마크다운에서도 뺀 섹션은 빠진다", !mdtext.includes("비밀 설정"));
 
   // ③ 혼자 도는 한 장짜리 문서
   got.length = 0;

@@ -93,6 +93,11 @@
   /* ── 단계 목록 ── */
   #steps { max-width: var(--read); margin: 0 auto; }
   .step { display: flex; gap: var(--sp-4); padding: var(--sp-5) 0; }
+  .num { cursor: grab; user-select: none; }
+  .num:active { cursor: grabbing; }
+  .step.dragging, .sec.dragging { opacity: .4; }
+  .step.dropbefore, .sec.dropbefore { box-shadow: 0 -2px 0 0 var(--amber); }
+  .step.dropafter,  .sec.dropafter  { box-shadow: 0 2px 0 0 var(--amber); }
   .step + .step { border-top: 1px solid var(--line); }
   .num {
     flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%;
@@ -265,6 +270,18 @@
   #markwrap { flex: 1; display: grid; place-items: center; padding: 0 var(--sp-8) var(--sp-5); min-height: 0; }
   #markcv { max-width: 100%; max-height: 100%; cursor: crosshair; border-radius: 6px; }
   #markhint { text-align: center; color: var(--ink-3); font-size: 14px; padding-bottom: var(--sp-4); }
+  .stitle.guess { color: var(--ink-2); }
+  .stitle.guess::after {
+    content: "짐작"; margin-left: var(--sp-2); font-size: 11px; color: var(--amber-2);
+    letter-spacing: .04em; vertical-align: middle;
+  }
+  #markcolors { display: inline-flex; gap: var(--sp-2); align-items: center; margin-right: var(--sp-3); }
+  #markcolors button {
+    width: 22px; height: 22px; border-radius: 50%; padding: 0;
+    outline: 2px solid transparent; outline-offset: 2px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.35);   /* 검정도 어두운 줄에서 보이게 */
+  }
+  #markcolors button[aria-pressed="true"] { outline-color: var(--ink-2); }
 
   /* ── 아래 막대 ── */
   #bottom {
@@ -319,8 +336,10 @@
     <div id="outmenu" hidden>
       <button data-out="print"><b>PDF로 저장</b><i>종이로 뽑거나, 어디서나 똑같이 보일 때</i></button>
       <button data-out="ppt"><b>PPT로 저장</b><i>발표하거나, 받는 사람이 고쳐 쓰게 할 때</i></button>
+      <button data-out="docx"><b>워드로 저장</b><i>사내 문서 양식에 맞춰 이어 쓸 때 (한글에서도 열림)</i></button>
       <button data-out="html"><b>파일 한 장으로</b><i>두 번 눌러 바로 열게, 프로그램 없이 보낼 때</i></button>
       <button data-out="imgs"><b>사진 원본만</b><i>다른 문서에 사진만 붙여 넣을 때</i></button>
+      <button data-out="md"><b>글과 그림으로</b><i>위키·깃헙·노션에 옮겨 붙일 때</i></button>
     </div>
   </span>
   <button class="tbtn" id="btn-save">작업 저장</button>
@@ -340,6 +359,7 @@
     <div id="shootsub">먼저 어떤 화면을 찍을지 한 번만 고르면, 그다음부터는 <b>하던 일만 하면 알아서 담깁니다.</b></div>
     <div id="autowrap">
       <button id="autobtn" class="tool on"><span id="autolabel">자동 촬영 켜짐</span></button>
+      <button id="titlebtn" class="tool" aria-pressed="false">제목 자동 작성 꺼짐</button>
       <button id="pausebtn2" class="tool">잠시 멈춤</button>
       <button id="rewbtn" class="tool">아까 그 화면</button>
     </div>
@@ -430,8 +450,12 @@
     <button class="tool" data-tool="arrow">화살표</button>
     <button class="tool" data-tool="badge">번호</button>
     <button class="tool" data-tool="blur">가리기</button>
+    <button class="tool" data-tool="text">글자</button>
     <button class="tool" data-tool="crop">자르기</button>
+    <button class="tool" data-tool="erase">지우개</button>
     <span class="grow"></span>
+    <span id="markcolors" role="group" aria-label="색"></span>
+    <button class="tool" id="mark-thin" title="선 굵기">굵기 보통</button>
     <button class="tool" id="mark-undo">되돌리기</button>
     <button class="tool" id="mark-clear">전부 지우기</button>
     <button class="tool" id="mark-done" style="color:var(--amber)">다 했어요</button>
@@ -755,6 +779,7 @@ function addShot(auto) {
   render(); save();
   const n = state.steps.filter(x => !x.sec).length;
   say(auto ? n + "번째 단계가 자동으로 담겼습니다" : n + "번째 단계를 찍었습니다");
+  if (auto) ocrFill(state.steps[state.steps.length - 1]);
   if (!auto) requestAnimationFrame(() => {
     const last = document.querySelector(".step:last-child .stitle");
     if (last) { last.focus(); last.scrollIntoView({ block: "center", behavior: "smooth" }); }
@@ -801,6 +826,7 @@ function render() {
     if (s.sec) {                                   // 섹션 머리
       const h = document.createElement("div");
       h.className = "sec";
+      h.draggable = true;
       h.innerHTML =
         '<div class="sectitle" contenteditable="plaintext-only" data-ph="섹션 이름 (예: 처음 설정하기)"></div>' +
         '<button data-act="skip" class="' + (s.off ? 'off' : '') + '">' + (s.off ? '다시 넣기' : '이번엔 빼기') + '</button>' +
@@ -810,6 +836,7 @@ function render() {
       ti.addEventListener("input", () => { s.title = ti.textContent; setPh(ti); save(); });
       h.classList.toggle("hidden", !!s.off);
       h.querySelectorAll("[data-act]").forEach(b => b.onclick = () => act(b.dataset.act, i));
+      dragHook(h, i);
       box.appendChild(h);
       cur = s.off ? "off" : "";
       return;
@@ -819,9 +846,10 @@ function render() {
     const el = document.createElement("div");
     el.className = "step" + (s._off ? " hidden" : "");
     el.innerHTML =
-      '<div class="num">' + n + '</div>' +
+      '<div class="num" draggable="true" title="끌어서 순서를 바꿉니다">' + n + '</div>' +
       '<div class="body">' +
-        '<div class="stitle" contenteditable="plaintext-only" data-ph="' + (s.auto ? "여기서 무엇을 했나요" : "이 단계에서 무엇을 하나요") + '"></div>' +
+        '<div class="stitle' + (s.guess ? ' guess' : '') + '" contenteditable="plaintext-only" data-ph="' + (s.auto ? "여기서 무엇을 했나요" : "이 단계에서 무엇을 하나요") + '"' +
+          (s.guess ? ' title="화면에서 읽은 글자로 채운 짐작입니다 — 고쳐 주세요"' : '') + '></div>' +
         '<div class="sdesc" contenteditable="plaintext-only" data-ph="' + (s.hint || "필요하면 설명을 덧붙이세요") + '"></div>' +
         (s.img ? '<div class="shot"><img alt="' + esc(n + "번째 단계 화면" + (s.title ? " — " + s.title : "")) + '"></div>' : '') +
         ((s.extra || []).map((_, k) => '<div class="shot extra"><img alt="' +
@@ -830,6 +858,7 @@ function render() {
           '<button data-act="mark">표시하기</button>' +
           '<button data-act="merge">위와 합치기</button>' +
           '<button data-act="split">둘로 나누기</button>' +
+          '<button data-act="copy">복제</button>' +
           '<button data-act="up">위로</button>' +
           '<button data-act="down">아래로</button>' +
           '<button data-act="del">삭제</button>' +
@@ -864,6 +893,11 @@ function render() {
     el.querySelectorAll("[data-act]").forEach(b => {
       b.onclick = () => act(b.dataset.act, i);
     });
+    dragHook(el, i);
+    // 번호를 눌러 맨 위·맨 아래로 보낼 수도 있다 (끌기가 어려운 사람을 위해)
+    const numEl = el.querySelector(".num");
+    numEl.title = "끌어서 순서를 바꿉니다 · 두 번 누르면 맨 위로";
+    numEl.ondblclick = () => act("top", i);
     box.appendChild(el);
   });
 }
@@ -911,6 +945,24 @@ function act(a, i) {
     say("둘로 나눴습니다 — 아래 단계에 제목을 붙여 주세요");
     return;
   }
+  if (a === "copy") {
+    snap("복제");
+    const src = state.steps[i];
+    const dup = JSON.parse(JSON.stringify(src));
+    if (dup.title) dup.title = dup.title + " (복사본)";
+    state.steps.splice(i + 1, 0, dup);
+    render(); save();
+    say(src.sec ? "섹션을 복제했습니다" : "단계를 복제했습니다");
+    return;
+  }
+  if (a === "top" || a === "bottom") {
+    snap(a === "top" ? "맨 위로" : "맨 아래로");
+    const [it] = state.steps.splice(i, 1);
+    if (a === "top") state.steps.unshift(it); else state.steps.push(it);
+    render(); save();
+    say(a === "top" ? "맨 위로 옮겼습니다" : "맨 아래로 옮겼습니다");
+    return;
+  }
   if (a === "skip") {
     const s = state.steps[i];
     s.off = !s.off;
@@ -925,9 +977,14 @@ function act(a, i) {
 }
 
 /* ── 표시하기: 사진 위에 상자·화살표·번호·가리기 ── */
-const MK = { i: -1, tool: "box", marks: [], base: null, drag: null };
+const MK = {
+  i: -1, tool: "box", marks: [], base: null, drag: null,
+  color: "#ff3b30", thick: 1,                      // 굵기 배수: 0.6 얇게 / 1 보통 / 1.7 굵게
+  COLORS: [["#ff3b30", "빨강"], ["#f0b429", "노랑"], ["#2fbf71", "초록"], ["#3b82f6", "파랑"], ["#111418", "검정"]],
+};
 
 function openMark(i) {
+  paintColors();
   const s = state.steps[i];
   if (!s || !s.img) { say("사진이 있는 단계에서만 표시할 수 있습니다"); return; }
   MK.i = i;
@@ -953,7 +1010,25 @@ function setTool(t) {
     : t === "badge" ? "누른 자리에 번호가 붙습니다."
     : t === "blur" ? "가릴 곳을 끌어서 덮으세요 — 그 부분은 완전히 지워집니다."
     : t === "arrow" ? "가리킬 방향으로 끄세요."
+    : t === "text" ? "글자를 넣을 자리를 누르세요."
+    : t === "erase" ? "지울 표시를 누르세요."
     : "감쌀 곳을 끌어서 상자를 그리세요.";
+}
+
+/* 색과 굵기 */
+function paintColors() {
+  $("#markcolors").innerHTML = MK.COLORS.map(([c, name]) =>
+    '<button data-color="' + c + '" style="background:' + c + '" title="' + name + '" ' +
+    'aria-label="' + name + '" aria-pressed="' + (c === MK.color ? "true" : "false") + '"></button>').join("");
+  $("#markcolors").querySelectorAll("button").forEach(b => {
+    b.onclick = () => { MK.color = b.dataset.color; paintColors(); };
+  });
+}
+const THICKS = [[0.6, "얇게"], [1, "보통"], [1.7, "굵게"]];
+function nextThick() {
+  const i = THICKS.findIndex(t => t[0] === MK.thick);
+  MK.thick = THICKS[(i + 1) % THICKS.length][0];
+  $("#mark-thin").textContent = "굵기 " + THICKS.find(t => t[0] === MK.thick)[1];
 }
 
 function drawMark(preview) {
@@ -969,9 +1044,11 @@ function drawMark(preview) {
 }
 
 function paintMark(g, m, n) {
-  const W = Math.max(3, Math.round(MK.base.naturalWidth / 380));   // 사진 크기에 맞춘 선 굵기
+  const base = Math.max(3, Math.round(MK.base.naturalWidth / 380));   // 사진 크기에 맞춘 선 굵기
+  const W = Math.max(2, Math.round(base * (m.k || 1)));
+  const C = m.c || "#ff3b30";
   g.save();
-  g.lineWidth = W; g.strokeStyle = "#ff3b30"; g.fillStyle = "#ff3b30";
+  g.lineWidth = W; g.strokeStyle = C; g.fillStyle = C;
   g.lineCap = "round"; g.lineJoin = "round";
   if (m.t === "box") {
     g.strokeRect(m.x, m.y, m.w, m.h);
@@ -990,6 +1067,20 @@ function paintMark(g, m, n) {
     g.fillRect(m.x, m.y, m.w, m.h);
     g.strokeStyle = "#4b5158"; g.lineWidth = Math.max(1, W / 2);
     g.strokeRect(m.x, m.y, m.w, m.h);
+  } else if (m.t === "text") {
+    const size = Math.max(16, W * 7);
+    g.font = "600 " + size + "px 'Malgun Gothic', sans-serif";
+    g.textAlign = "left"; g.textBaseline = "top";
+    const lines = String(m.s || "").split("\n");
+    const pad = Math.round(size * 0.3);
+    let wide = 0;
+    lines.forEach(t => { wide = Math.max(wide, g.measureText(t).width); });
+    g.fillStyle = "rgba(255,255,255,.92)";
+    g.fillRect(m.x - pad, m.y - pad, wide + pad * 2, lines.length * size * 1.25 + pad * 2);
+    g.strokeStyle = C; g.lineWidth = Math.max(2, W / 2);
+    g.strokeRect(m.x - pad, m.y - pad, wide + pad * 2, lines.length * size * 1.25 + pad * 2);
+    g.fillStyle = C;
+    lines.forEach((t, k) => g.fillText(t, m.x, m.y + k * size * 1.25));
   } else if (m.t === "badge") {
     const r = Math.max(14, W * 6);
     g.beginPath(); g.arc(m.x, m.y, r, 0, Math.PI * 2); g.fill();
@@ -1009,9 +1100,25 @@ function markPos(e) {
 
 $("#markcv").addEventListener("pointerdown", e => {
   const p = markPos(e);
-  if (MK.tool === "badge") { MK.marks.push({ t: "badge", x: p.x, y: p.y }); drawMark(); return; }
+  if (MK.tool === "badge") { MK.marks.push({ t: "badge", x: p.x, y: p.y, c: MK.color, k: MK.thick }); drawMark(); return; }
+  if (MK.tool === "text") {
+    const t = prompt("사진에 넣을 글자");
+    if (t === null || !String(t).trim()) return;
+    MK.marks.push({ t: "text", x: p.x, y: p.y, s: String(t).trim(), c: MK.color, k: MK.thick });
+    drawMark();
+    return;
+  }
+  if (MK.tool === "erase") {
+    const hit = markAt(p);
+    if (hit < 0) { say("지울 표시가 없습니다 — 표시 위를 누르세요"); return; }
+    MK.marks.splice(hit, 1);
+    drawMark();
+    say("표시 하나를 지웠습니다");
+    return;
+  }
   MK.drag = { t: MK.tool, x: p.x, y: p.y, w: 0, h: 0 };
-  $("#markcv").setPointerCapture(e.pointerId);
+  // 붙잡기가 안 되는 자리가 있다(펜·보조 입력·자동화). 안 돼도 그리기는 이어져야 한다.
+  try { $("#markcv").setPointerCapture(e.pointerId); } catch (err) {}
 });
 $("#markcv").addEventListener("pointermove", e => {
   if (!MK.drag) return;
@@ -1028,8 +1135,41 @@ $("#markcv").addEventListener("pointerup", () => {
     if (d.h < 0) { d.y += d.h; d.h = -d.h; }
   }
   if (d.t === "crop") { doCrop(d); return; }
-  MK.marks.push(d); drawMark();
+  MK.marks.push({ ...d, c: MK.color, k: MK.thick }); drawMark();
 });
+
+/* 누른 자리에 있는 표시를 찾는다. 위에 그려진 것부터 본다. */
+function markAt(p) {
+  const base = Math.max(3, Math.round(MK.base.naturalWidth / 380));
+  for (let i = MK.marks.length - 1; i >= 0; i--) {
+    const m = MK.marks[i];
+    const W = Math.max(2, Math.round(base * (m.k || 1)));
+    if (m.t === "badge") {
+      const r = Math.max(14, W * 6);
+      if (Math.hypot(p.x - m.x, p.y - m.y) <= r * 1.2) return i;
+      continue;
+    }
+    if (m.t === "text") {
+      const size = Math.max(16, W * 7);
+      const lines = String(m.s || "").split("\n");
+      const wide = size * 0.6 * Math.max(...lines.map(t => t.length));
+      if (p.x >= m.x - size && p.x <= m.x + wide + size &&
+          p.y >= m.y - size && p.y <= m.y + lines.length * size * 1.25 + size) return i;
+      continue;
+    }
+    if (m.t === "arrow") {
+      const near = 12 + W * 3;
+      const dx = m.w, dy = m.h, L2 = dx * dx + dy * dy;
+      const t = L2 ? Math.max(0, Math.min(1, ((p.x - m.x) * dx + (p.y - m.y) * dy) / L2)) : 0;
+      if (Math.hypot(p.x - (m.x + dx * t), p.y - (m.y + dy * t)) <= near) return i;
+      continue;
+    }
+    const x0 = Math.min(m.x, m.x + m.w), x1 = Math.max(m.x, m.x + m.w);
+    const y0 = Math.min(m.y, m.y + m.h), y1 = Math.max(m.y, m.y + m.h);
+    if (p.x >= x0 - W && p.x <= x1 + W && p.y >= y0 - W && p.y <= y1 + W) return i;
+  }
+  return -1;
+}
 
 function doCrop(r) {
   const c2 = document.createElement("canvas");
@@ -1051,6 +1191,7 @@ function doCrop(r) {
 
 document.querySelectorAll("#marktop .tool[data-tool]").forEach(b =>
   b.onclick = () => setTool(b.dataset.tool));
+$("#mark-thin").onclick = nextThick;
 $("#mark-undo").onclick = () => { MK.marks.pop(); drawMark(); };
 $("#mark-clear").onclick = () => { MK.marks = []; drawMark(); };
 $("#mark-done").onclick = () => {
@@ -1605,6 +1746,147 @@ function cutText(t) {
   return [t.slice(0, at).trim(), t.slice(at).trim()];
 }
 
+/* ── 워드 문서로 내보내기 ─────────────────────────────────────────
+   .docx 는 .pptx 와 같은 짜임이다: 압축 파일 안에 정해진 XML 부품을 넣는다.
+   받는 사람이 워드·한글·구글 문서 어디서 열어도 글자는 글자로, 사진은 사진으로 남는다. */
+async function exportDOCX() {
+  const list = live();
+  if (!list.length) { say("먼저 단계를 만들어 주세요"); return; }
+  const F = state.form || {};
+  const files = [];
+  const push = (name, str) => files.push({ name, data: enc.encode(str) });
+  const X = t => esc(String(t == null ? "" : t));
+
+  // 사진을 먼저 담고, 크기를 재 둔다 (워드는 넣을 자리 크기를 미리 알아야 한다)
+  const media = [];
+  const EMU = 914400;                 // 1인치
+  const COLW = 6.0 * EMU;             // A4 본문 폭 약 6인치
+  for (const st of list) {
+    if (st.sec || !st.img) continue;
+    const dim = await new Promise(res => {
+      const im = new Image();
+      im.onload = () => res({ w: im.naturalWidth || 1200, h: im.naturalHeight || 750 });
+      im.onerror = () => res({ w: 1200, h: 750 });
+      im.src = st.img;
+    });
+    const w = Math.min(COLW, dim.w * (EMU / 96));
+    media.push({ step: st, id: media.length + 1, cx: Math.round(w), cy: Math.round(w * dim.h / dim.w) });
+  }
+
+  const par = (text, opt) => {
+    const o = opt || {};
+    return '<w:p><w:pPr>' +
+      (o.style ? '<w:pStyle w:val="' + o.style + '"/>' : '') +
+      (o.after !== undefined ? '<w:spacing w:after="' + o.after + '"/>' : '') +
+      '</w:pPr><w:r><w:rPr>' +
+      (o.b ? '<w:b/>' : '') +
+      (o.sz ? '<w:sz w:val="' + o.sz + '"/><w:szCs w:val="' + o.sz + '"/>' : '') +
+      (o.color ? '<w:color w:val="' + o.color + '"/>' : '') +
+      '</w:rPr><w:t xml:space="preserve">' + X(text) + '</w:t></w:r></w:p>';
+  };
+  const pic = m =>
+    '<w:p><w:pPr><w:spacing w:after="240"/><w:ind w:left="360"/></w:pPr><w:r><w:drawing>' +
+    '<wp:inline distT="0" distB="0" distL="0" distR="0">' +
+    '<wp:extent cx="' + m.cx + '" cy="' + m.cy + '"/>' +
+    '<wp:docPr id="' + m.id + '" name="그림 ' + m.id + '" descr="' + X(m.alt || "단계 화면") + '"/>' +
+    '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">' +
+    '<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
+    '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
+    '<pic:nvPicPr><pic:cNvPr id="' + m.id + '" name="그림 ' + m.id + '"/><pic:cNvPicPr/></pic:nvPicPr>' +
+    '<pic:blipFill><a:blip r:embed="rId' + (100 + m.id) + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>' +
+    '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + m.cx + '" cy="' + m.cy + '"/></a:xfrm>' +
+    '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>' +
+    '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>';
+
+  let body = "";
+  if (F.org) body += par(F.org, { sz: 20, color: "666666", after: 40 });
+  body += par(state.name || "매뉴얼", { b: true, sz: 44, after: 60 });
+  if (F.sub) body += par(F.sub, { sz: 22, color: "444444", after: 200 });
+  if (F.intro) String(F.intro).split(/\n/).forEach(t => { body += par(t, { sz: 20, color: "333333", after: 120 }); });
+
+  let n = 0, mi = 0;
+  for (const st of list) {
+    if (st.sec) { body += par(st.title || "섹션", { b: true, sz: 26, color: "B07D10", after: 100 }); continue; }
+    n++;
+    body += par(n + ". " + (st.title || ""), { b: true, sz: 26, after: 80 });
+    if (st.desc) String(st.desc).split(/\n/).forEach(t => { body += par(t, { sz: 21, after: 80 }); });
+    if (st.img) {
+      const m = media[mi++];
+      m.alt = n + "번째 단계 화면" + (st.title ? " — " + st.title : "");
+      body += pic(m);
+    }
+  }
+  if (F.outro) {
+    body += par("", { after: 200 });
+    String(F.outro).split(/\n/).forEach(t => { body += par(t, { sz: 18, color: "666666", after: 80 }); });
+  }
+
+  push("[Content_Types].xml",
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Default Extension="png" ContentType="image/png"/>' +
+    '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+    '</Types>');
+  push("_rels/.rels",
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
+    '</Relationships>');
+  push("word/document.xml",
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" ' +
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
+    'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">' +
+    '<w:body>' + body +
+    '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>' +
+    '<w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="720" w:footer="720" w:gutter="0"/>' +
+    '</w:sectPr></w:body></w:document>');
+  push("word/_rels/document.xml.rels",
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    media.map(m => '<Relationship Id="rId' + (100 + m.id) + '" ' +
+      'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" ' +
+      'Target="media/image' + m.id + '.png"/>').join("") +
+    '</Relationships>');
+  media.forEach(m => files.push({ name: "word/media/image" + m.id + ".png", data: dataURLtoBytes(m.step.img) }));
+
+  download(new Blob([zipMake(files)], {
+    type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  }), (state.name || "매뉴얼") + ".docx");
+  say("워드 문서로 저장했습니다 — 한글에서도 열립니다");
+}
+
+/* ── 글로만 내보내기 (마크다운) ──────────────────────────────────
+   위키·깃헙·노션에 붙일 때 쓴다. 사진은 옆에 딸린 폴더로 나간다. */
+function exportMD() {
+  const list = live();
+  if (!list.length) { say("먼저 단계를 만들어 주세요"); return; }
+  const F = state.form || {};
+  const base = (state.name || "매뉴얼").replace(/[\\/:*?"<>|]/g, "");
+  const files = [];
+  let out = "# " + (state.name || "매뉴얼") + "\n\n";
+  if (F.org || F.sub) out += [F.org, F.sub].filter(Boolean).join(" · ") + "\n\n";
+  if (F.intro) out += F.intro + "\n\n";
+  let n = 0;
+  for (const st of list) {
+    if (st.sec) { out += "## " + (st.title || "섹션") + "\n\n"; continue; }
+    n++;
+    out += "### " + n + ". " + (st.title || "") + "\n\n";
+    if (st.desc) out += st.desc + "\n\n";
+    if (st.img) {
+      const nm = String(n).padStart(2, "0") + "_" + (st.title || "단계").replace(/[\\/:*?"<>|\s]/g, "") + ".png";
+      files.push({ name: base + "/그림/" + nm, data: dataURLtoBytes(st.img) });
+      out += "![" + n + "번째 단계 화면](그림/" + nm + ")\n\n";
+    }
+  }
+  if (F.outro) out += "---\n\n" + F.outro + "\n";
+  files.unshift({ name: base + "/" + base + ".md", data: enc.encode(out) });
+  download(new Blob([zipMake(files)], { type: "application/zip" }), base + "_마크다운.zip");
+  say("글과 그림으로 내보냈습니다 — 위키나 깃헙에 붙일 때 씁니다");
+}
+
 /* ── 한 장짜리 문서로 내보내기: 상용은 링크로 공유한다. 우리는 서버가 없으니
    혼자 도는 HTML 파일 하나를 준다. 받는 사람은 두 번 눌러 열면 끝이다. */
 function exportHTML() {
@@ -1652,6 +1934,204 @@ function exportHTML() {
 
   download(new Blob([html], { type: "text/html" }), (state.name || "매뉴얼") + ".html");
   say("파일 하나로 내보냈습니다 — 받는 사람은 두 번 눌러 열면 됩니다");
+}
+
+/* ── 단계 글 자동 작성 ────────────────────────────────────────────
+   상용은 누른 단추의 이름을 읽어 제목을 써 준다(브라우저 확장이라 가능하다).
+   우리는 화면 그림만 받으므로, 바뀐 자리의 글자를 읽어서 제목 후보를 만든다.
+
+   글자 읽기는 새로 만들지 않고 이미 있는 것을 쓴다 — Tesseract (Apache-2.0).
+   다만 인터넷으로 부르지 않는다. 파일을 옆 폴더 ocr/ 에 두고 거기서만 읽는다.
+   그래서 사진은 여전히 이 컴퓨터를 벗어나지 않는다. */
+const OCR = { on: false, ready: null, worker: null, busy: 0 };
+
+function ocrSay(t) { say(t); }
+
+/* 왜 못 켜는지 미리 안다 — 60초 기다렸다가 실패하게 두지 않는다 */
+function ocrBlocked() {
+  if (location.protocol === "file:")
+    return "내려받은 파일로 열면 브라우저가 옆 폴더 읽기를 막습니다 — 인터넷 주소로 열거나 회사 안 서버에 올려 주세요";
+  return "";
+}
+
+async function ocrStart() {
+  const no = ocrBlocked();
+  if (no) throw new Error(no);
+  if (OCR.ready) return OCR.ready;
+  OCR.ready = (async () => {
+    if (!window.Tesseract) {
+      await new Promise((res, rej) => {
+        const sc = document.createElement("script");
+        sc.src = "ocr/tesseract.min.js";
+        sc.onload = res;
+        sc.onerror = () => rej(new Error("파일 없음"));
+        document.head.appendChild(sc);
+      });
+    }
+    const make = Tesseract.createWorker(["kor", "eng"], 1, {
+      workerPath: "ocr/worker.min.js",
+      corePath: "ocr/tesseract-core-simd-lstm.wasm.js",
+      langPath: "ocr",
+      gzip: true,
+      cacheMethod: "none",
+    });
+    const w = await Promise.race([
+      make,
+      new Promise((_, rej) => setTimeout(() => rej(new Error("너무 오래 걸립니다")), 40000)),
+    ]);
+    // 잘라 낸 조각은 글자 덩어리 하나다 — 지면 분석을 시키면 그림으로 보고 건너뛴다
+    // 잘라 낸 조각은 글자 한 줄이다. 지면 분석을 시키면 그림으로 보고 건너뛴다.
+    // 실측(2026-08-21): 3·6·11 은 하나도 못 읽었고, 7 과 13 만 읽었다.
+    try { await w.setParameters({ tessedit_pageseg_mode: "7" }); } catch (e) {}
+    OCR.worker = w;
+    return w;
+  })();
+  OCR.ready.catch(() => { OCR.ready = null; });   // 다음에 다시 해 볼 수 있게
+  return OCR.ready;
+}
+
+/* 바뀐 자리만 잘라 크게 키운다 — 작은 글씨는 키워야 읽힌다 */
+function ocrCrop(img, spot) {
+  return new Promise(res => {
+    const im = new Image();
+    im.onload = () => {
+      const W = im.naturalWidth, H = im.naturalHeight;
+      const x = spot.x * W, y = spot.y * H;
+      const w = spot.w * W, h = spot.h * H;
+      const scale = Math.min(4, Math.max(2, 900 / Math.max(1, w)));
+      const m = 24;                       // 둘레에 흰 여백을 둔다 — 글자가 가장자리에 붙으면 안 읽힌다
+      const cv = document.createElement("canvas");
+      cv.width = Math.round(w * scale) + m * 2;
+      cv.height = Math.round(h * scale) + m * 2;
+      const g = cv.getContext("2d", { willReadFrequently: true });
+      g.fillStyle = "#fff"; g.fillRect(0, 0, cv.width, cv.height);
+      g.imageSmoothingQuality = "high";
+      g.drawImage(im, x, y, w, h, m, m, cv.width - m * 2, cv.height - m * 2);
+
+      // 흑백으로 바꾸고, 어두운 바탕이면 뒤집는다.
+      // 파란 단추 위의 흰 글자는 그냥 두면 글자로 안 보인다 (실측: 하나도 못 읽음).
+      const px = g.getImageData(0, 0, cv.width, cv.height);
+      const a = px.data;
+      // 밝기는 가운데 절반만 보고 판단한다 — 둘레의 흰 여백에 속지 않게
+      let sum = 0, cnt = 0;
+      const x0 = (cv.width * 0.25) | 0, x1 = (cv.width * 0.75) | 0;
+      const y0 = (cv.height * 0.25) | 0, y1 = (cv.height * 0.75) | 0;
+      for (let yy = y0; yy < y1; yy++) for (let xx = x0; xx < x1; xx++) {
+        const i = (yy * cv.width + xx) * 4;
+        sum += (a[i] * 77 + a[i + 1] * 151 + a[i + 2] * 28) >> 8; cnt++;
+      }
+      const dark = cnt > 0 && sum / cnt < 140;
+      for (let i = 0; i < a.length; i += 4) {
+        let v = (a[i] * 77 + a[i + 1] * 151 + a[i + 2] * 28) >> 8;
+        if (dark) v = 255 - v;
+        a[i] = a[i + 1] = a[i + 2] = v; a[i + 3] = 255;
+      }
+      g.putImageData(px, 0, 0);
+      res(cv);
+    };
+    im.onerror = () => res(null);
+    im.src = img;
+  });
+}
+
+/* 읽은 글자에서 제목을 만든다. 못 믿을 것은 버린다.
+   줄별 성적을 주는 판이 있고 글 전체만 주는 판이 있어 둘 다 받는다. */
+function ocrTitle(data, spot) {
+  if (!data) return "";
+  const whole = data.confidence == null ? 0 : data.confidence;
+  const rows = (data.lines && data.lines.length
+      ? data.lines.map(l => ({ t: l.text, c: l.confidence || whole }))
+      : String(data.text || "").split(/\r?\n/).map(t => ({ t, c: whole })))
+    .map(r => ({ t: String(r.t || "").replace(/\s+/g, " ").trim(), c: r.c }))
+    .filter(r => r.t.length >= 1 && r.t.length <= 24 && r.c >= 62)
+    .filter(r => /[가-힣A-Za-z0-9]/.test(r.t))
+    .sort((a, b) => b.c - a.c || b.t.length - a.t.length);
+  if (!rows.length) return "";
+  // 단추 테두리가 글자로 읽히는 일이 있다 — 양끝의 막대·괄호 따위를 걷어낸다 (실측: "ㅣ 다음 ㅣ")
+  // 글자(l·I 같은 것)는 건드리지 않는다 — Install 의 I 를 지우면 안 된다
+  const junk = "\u3163|\\[\\]{}()<>~`^_\\\\.,:;'" + String.fromCharCode(34);
+  const t = rows[0].t
+    .replace(new RegExp("^[" + junk + "\\s]+"), "")
+    .replace(new RegExp("[" + junk + "\\s]+$"), "")
+    .trim();
+  if (t.length < 1) return "";
+  const small = spot && spot.w * spot.h < 0.06;
+  return small ? t + " 누르기" : t;
+}
+
+async function ocrFill(step) {
+  if (!OCR.on || !step || !step.spot || !step.img || step.title) return;
+  OCR.busy++;
+  try {
+    const w = await ocrStart();
+    const cv = await ocrCrop(step.img, step.spot);
+    if (!cv) return;
+    const r = await w.recognize(cv);
+    const t = ocrTitle(r && r.data, step.spot);
+    if (t && !step.title) {
+      step.title = t;
+      step.guess = true;               // 사람이 고칠 수 있게 "짐작"이라고 표시해 둔다
+      render(); save();
+    }
+  } catch (e) {
+    OCR.on = false;
+    paintTitleBtn();
+    ocrSay("제목 자동 작성이 멈췄습니다 — " + (ocrBlocked() || (e && e.message) || "ocr 폴더를 확인해 주세요"));
+  } finally {
+    OCR.busy--;
+  }
+}
+
+function paintTitleBtn() {
+  const b = $("#titlebtn");
+  b.textContent = "제목 자동 작성 " + (OCR.on ? "켜짐" : "꺼짐");
+  b.classList.toggle("on", OCR.on);
+  b.setAttribute("aria-pressed", OCR.on ? "true" : "false");
+}
+
+/* ── 끌어서 순서 바꾸기 ────────────────────────────────────────
+   단계가 예순 개면 "위로"를 마흔 번 눌러야 한다. 그건 도구가 아니라 벌이다.
+   번호 동그라미를 잡고 끌면 그 자리로 간다. */
+const DRAG = { from: -1 };
+
+function moveStep(from, to) {
+  if (from === to || from < 0 || to < 0) return false;
+  snap("옮기기");
+  const [it] = state.steps.splice(from, 1);
+  state.steps.splice(from < to ? to - 1 : to, 0, it);
+  render(); save();
+  return true;
+}
+
+function dragHook(el, i) {
+  el.addEventListener("dragstart", e => {
+    DRAG.from = i;
+    el.classList.add("dragging");
+    try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", String(i)); } catch (e2) {}
+  });
+  el.addEventListener("dragend", () => {
+    DRAG.from = -1;
+    document.querySelectorAll(".dragging,.dropbefore,.dropafter")
+      .forEach(x => x.classList.remove("dragging", "dropbefore", "dropafter"));
+  });
+  el.addEventListener("dragover", e => {
+    if (DRAG.from < 0) return;
+    e.preventDefault();
+    const r = el.getBoundingClientRect();
+    const after = e.clientY > r.top + r.height / 2;
+    el.classList.toggle("dropafter", after);
+    el.classList.toggle("dropbefore", !after);
+  });
+  el.addEventListener("dragleave", () => el.classList.remove("dropbefore", "dropafter"));
+  el.addEventListener("drop", e => {
+    e.preventDefault();
+    if (DRAG.from < 0) return;
+    const r = el.getBoundingClientRect();
+    const to = i + (e.clientY > r.top + r.height / 2 ? 1 : 0);
+    el.classList.remove("dropbefore", "dropafter");
+    if (moveStep(DRAG.from, to)) say("옮겼습니다 — 되돌리려면 Ctrl+Z");
+    DRAG.from = -1;
+  });
 }
 
 /* ── 되돌리기: 안 찍힌 것을 꺼낸다 (상용은 유료로 판다) ── */
@@ -1809,6 +2289,20 @@ $("#autobtn").onclick = () => {
   if (WATCH.on) { watchStop(); say("자동 촬영을 껐습니다 — 이제 직접 찍으세요"); }
   else { watchStart(); say("자동 촬영을 켰습니다"); }
 };
+$("#titlebtn").onclick = async () => {
+  OCR.on = !OCR.on;
+  paintTitleBtn();
+  if (!OCR.on) { say("제목은 직접 쓰시면 됩니다"); return; }
+  say("글자를 읽을 준비를 합니다 — 처음 한 번만 걸립니다");
+  try {
+    await ocrStart();
+    say("제목 자동 작성 켜짐 — 이제 담길 때 바뀐 자리의 글자를 읽어 제목을 채웁니다");
+  } catch (e) {
+    OCR.on = false;
+    paintTitleBtn();
+    say("제목 자동 작성을 켤 수 없습니다 — " + (ocrBlocked() || (e && e.message) || "ocr 폴더가 없습니다"));
+  }
+};
 $("#rewbtn").onclick = openRewind;
 $("#pausebtn2").onclick = () => {
   state.paused = !state.paused;
@@ -1829,7 +2323,8 @@ $("#btn-sec").onclick = () => {
 $("#btn-save").onclick = saveFile;
 $("#spill-save").onclick = saveFile;
 /* 내보내기 목록: 무엇을 고를지가 어려우므로 언제 쓰는지를 같이 보여 준다 */
-const OUT = { print: () => { if (!live().length) { say("먼저 단계를 만들어 주세요"); return; } window.print(); }, ppt: exportPPT, html: exportHTML, imgs: exportImages };
+const OUT = { print: () => { if (!live().length) { say("먼저 단계를 만들어 주세요"); return; } window.print(); },
+  ppt: exportPPT, docx: exportDOCX, html: exportHTML, imgs: exportImages, md: exportMD };
 function outMenu(open) {
   const m = $("#outmenu");
   const on = open === undefined ? m.hidden : open;
@@ -1864,7 +2359,8 @@ addEventListener("keydown", e => {
 addEventListener("beforeunload", e => {
   if (state.steps.length && !state.saved) { e.preventDefault(); e.returnValue = ""; }
 });
-load();
+paintTitleBtn();
+load();load();
 loadForms();
 paintCover();
 render();
