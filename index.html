@@ -518,7 +518,15 @@
     background: var(--colors-adaptive-background-brand); margin-left: var(--spacing-2);
   }
   .warnlink:hover { background: var(--colors-primary-normal); color: var(--colors-label-inverse); }
+  /* 일을 시작하면 첫 화면 안내는 자리를 비켜 준다 — 화면의 3분의 1을 계속 차지하면 안 된다 */
+  body.working #shootwrap { padding-top: var(--spacing-6); padding-bottom: var(--spacing-4); }
+  body.working #shootsub, body.working #shootpick { display: none; }
+  body.working #shoot { transform: scale(.85); }
   #top .grow { flex: 1; }
+  #top { flex-wrap: nowrap; }                      /* 두 줄로 접히면 글자가 깨져 보인다 */
+  #counthint { white-space: nowrap; }
+  #docname { min-width: 90px; }
+  #top > button, #top .tbtn { flex: 0 0 auto; white-space: nowrap; }
   #help { position: fixed; inset: 0; background: var(--colors-dimmer-normal, rgba(0,0,0,.6)); display: none; z-index: 80; }
   #help.on { display: grid; place-items: center; }
   #helpin {
@@ -535,16 +543,36 @@
   }
   #helpin dd { font: var(--typography-6-regular); color: var(--colors-label-neutral); }
   #helpin .lead { margin: var(--spacing-6) 0 var(--spacing-5); color: var(--colors-label-assistive); font: var(--typography-7-regular); }
-  #findwrap { display: inline-flex; align-items: center; gap: var(--spacing-2); margin-left: var(--spacing-3); }
+  #findwrap { display: inline-flex; align-items: center; }
+  #findwrap[hidden] { display: none; }   /* id 로 display 를 못박으면 hidden 속성이 안 먹는다 */
+  /* 찾기 줄은 위 줄 아래에 따로 눕는다. 위 줄에 밀어 넣으면 글자끼리 겹친다. */
+  #findbar {
+    position: sticky; top: 0; z-index: 45;
+    display: flex; align-items: center; gap: var(--spacing-3);
+    padding: var(--spacing-3) var(--spacing-5);
+    background: var(--colors-layered-background);
+    border-bottom: 1px solid var(--colors-line-normal);
+  }
+  #findbar[hidden] { display: none; }
+  #findbar .grow { flex: 1; }
+  #findbar .sep { width: 1px; height: 20px; background: var(--colors-line-normal); }
+  #findbar button {
+    height: 32px; padding: 0 var(--spacing-3); border-radius: var(--radius-sm);
+    font: var(--typography-7-medium); color: var(--colors-label-neutral);
+  }
+  #findbar button:hover { background: var(--colors-state-hover); color: var(--colors-label-normal); }
+  /* 칸은 칸으로 보여야 한다. 테두리가 없으면 글자만 떠 있는 것처럼 읽힌다. */
+  #find, #swap { border: 1px solid var(--colors-line-normal); }
+  #find:hover, #swap:hover { border-color: var(--colors-line-strong, var(--colors-line-normal)); }
   #find {
-    height: 32px; width: 150px; padding: 0 var(--spacing-3);
+    height: 32px; width: 260px; padding: 0 var(--spacing-3);
     border-radius: var(--radius-sm); background: var(--colors-layered-background);
     color: var(--colors-label-normal); font: var(--typography-7-regular);
   }
   #find:focus { outline: 2px solid var(--colors-state-focused); outline-offset: 0; }
   #find::placeholder { color: var(--colors-label-assistive); }
   #swap {
-    height: 32px; width: 130px; padding: 0 var(--spacing-3);
+    height: 32px; width: 220px; padding: 0 var(--spacing-3);
     border-radius: var(--radius-sm); background: var(--colors-layered-background);
     color: var(--colors-label-normal); font: var(--typography-7-regular);
   }
@@ -567,18 +595,35 @@
     display: flex; align-items: flex-end; justify-content: center; padding: var(--spacing-8);
   }
   /* 고른 단계. 상자를 씌우지 않고 왼쪽에 띠 하나로 — 목록이 알록달록해지면 못 읽는다 */
+  /* 고른 칸. 칸 전체를 물들이면 사진까지 색이 덮여 못 읽는다 — 왼쪽 띠 하나로만. */
   .step.picked, .sec.picked {
-    background: var(--colors-state-selected, var(--colors-adaptive-background-brand));
     box-shadow: inset 3px 0 0 var(--colors-primary-normal);
+    background: color-mix(in srgb, var(--colors-primary-normal) 6%, transparent);
   }
+  .step.picked .num { color: var(--colors-label-brand); font-weight: 700; }
   #bulk {
     position: fixed; left: 50%; bottom: var(--spacing-8); transform: translateX(-50%);
     display: none; align-items: center; gap: var(--spacing-3); z-index: 40;
     background: var(--colors-floated-background); border: 1px solid var(--colors-line-normal);
+    backdrop-filter: blur(8px);
     border-radius: var(--radius-full); box-shadow: var(--shadow-xl);
     padding: var(--spacing-2) var(--spacing-3);
   }
   #bulk.on { display: flex; }
+  #tabwarn {
+    display: none; position: fixed; left: 50%; top: var(--spacing-10); transform: translateX(-50%);
+    z-index: 70; max-width: 520px; padding: var(--spacing-4) var(--spacing-5);
+    background: var(--colors-floated-background); border: 1px solid var(--colors-primary-normal);
+    border-radius: var(--radius-md); box-shadow: var(--shadow-xl);
+    color: var(--colors-label-neutral); font: var(--typography-7-regular);
+  }
+  #tabwarn.on { display: block; }
+  #tabwarn b { display: block; color: var(--colors-label-normal); margin-bottom: var(--spacing-2); }
+  #tabwarn button {
+    margin-top: var(--spacing-3); height: 30px; padding: 0 var(--spacing-4);
+    border-radius: var(--radius-sm); background: var(--colors-layered-background);
+    color: var(--colors-label-normal); font: var(--typography-7-medium);
+  }
   #bulk .n { font: var(--typography-7-semibold); color: var(--colors-label-brand); padding: 0 var(--spacing-2); }
   #bulk button {
     height: 32px; padding: 0 var(--spacing-3); border-radius: var(--radius-sm);
@@ -669,7 +714,7 @@
   .shot.open img { max-height: none; object-fit: contain; cursor: zoom-out; }
   .shot::after {
     content: "누르면 크게"; position: absolute; right: 8px; bottom: 8px;
-    font-size: var(--typography-caption-1-size); color: var(--colors-label-neutral); background: rgba(10,12,13,.72);
+    font-size: var(--typography-caption-1-size); color: var(--colors-label-neutral); background: var(--colors-dimmer-strong);
     padding: var(--spacing-1) var(--spacing-2); border-radius: var(--radius-xs); pointer-events: none;
     opacity: 0; transition: opacity 160ms ease;      /* 늘 떠 있으면 표시를 가린다 */
   }
@@ -684,7 +729,7 @@
     position: absolute; border: 2px solid #ff3b30; border-radius: var(--radius-xs);
     pointer-events: none;
   }
-  .shot.open .spot { box-shadow: 0 0 0 2000px rgba(10,12,13,.34); }
+  .shot.open .spot { box-shadow: 0 0 0 2000px var(--colors-dimmer-basic); }
   /* 손질 단추는 그 단계에 손이 갈 때 드러난다.
      늘 보이면 단계 60개에 단추 420개다 — 사진을 읽을 수 없다. */
   .srow {
@@ -758,6 +803,20 @@
   #boxbtns button:hover { color: var(--colors-label-normal); }
   #boxbtns .go { background: var(--colors-primary-normal); color: var(--colors-label-inverse); font-weight: 600; }
   #boxbtns .grow { flex: 1; }   /* 닫기는 반대쪽 끝에 — 만들기와 나란히 두면 잘못 누른다 */
+  #tailbar {
+    display: flex; align-items: center; gap: var(--spacing-3);
+    max-width: var(--read); margin: var(--spacing-6) auto var(--spacing-12);
+    padding: 0 var(--spacing-5);
+  }
+  #tailbar button {
+    display: inline-flex; align-items: center; gap: var(--spacing-2);
+    height: 36px; padding: 0 var(--spacing-4); border-radius: var(--radius-md);
+    background: var(--colors-layered-background); color: var(--colors-label-neutral);
+    font: var(--typography-7-medium);
+  }
+  #tailbar button:hover { background: var(--colors-state-hover); color: var(--colors-label-normal); }
+  #tailbar .hint { color: var(--colors-label-assistive); font: var(--typography-8-regular); }
+  body.blank #tailbar { display: none; }
   #boxlist { margin-top: var(--spacing-8); }
   #baklist:not(:empty) { margin-top: var(--spacing-10); padding-top: var(--spacing-6);
     border-top: 1px solid var(--colors-line-normal); }
@@ -823,11 +882,12 @@
 
   #spill {
     display: none; position: fixed; left: 50%; bottom: 74px; transform: translateX(-50%);
-    background: #3a2a08; color: #ffe9b8; padding: var(--spacing-3) var(--spacing-5); border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--colors-label-warning) 22%, var(--colors-background));
+    color: var(--colors-label-warning); padding: var(--spacing-3) var(--spacing-5); border-radius: var(--radius-md);
     font-size: var(--typography-6-size); max-width: 620px; z-index: 40; line-height: 1.5;
   }
   #spill.on { display: block; }
-  #spill b { color: #ffd873; }
+  #spill b { color: var(--colors-label-warning); }
   #spill button {
     background: var(--colors-primary-normal); color: var(--colors-label-inverse); font-weight: 600;
     padding: var(--spacing-1) var(--spacing-3); border-radius: var(--radius-xs); margin: 0 var(--spacing-1);
@@ -967,10 +1027,7 @@
   <input id="docname" value="새 매뉴얼" aria-label="매뉴얼 이름">
   <span class="hint" id="counthint"></span>
   <span id="findwrap">
-    <input id="find" type="search" placeholder="찾기" aria-label="단계 찾기" autocomplete="off">
-    <span id="findn" class="hint"></span>
-    <input id="swap" type="text" placeholder="이 말로 바꾸기" aria-label="찾은 말을 이 말로 바꿉니다" autocomplete="off" hidden>
-    <button id="swapgo" hidden>모두 바꾸기</button>
+    <button id="btn-find" class="tbtn" aria-expanded="false" title="단계 찾기 (Ctrl+F)"><svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8" /> <path d="m21 21-4.3-4.3" /></svg>찾기</button>
   </span>
   <span class="grow"></span>
   <button class="tbtn" id="btn-box"><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 6 4 14" /> <path d="M12 6v14" /> <path d="M8 8v12" /> <path d="M4 4v16" /></svg>매뉴얼 목록</button>
@@ -980,8 +1037,8 @@
   <span class="menuwrap">
     <button class="tbtn" id="btn-out" aria-haspopup="true" aria-expanded="false"><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3" /> <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /> <path d="m7 10 5 5 5-5" /></svg>내보내기</button>
     <div id="outmenu" hidden>
-      <button data-out="peek"><svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /> <circle cx="12" cy="12" r="3" /></svg><span><b>먼저 보기</b><i>보내기 전에 받는 사람 눈으로 한 번 볼 때</i></span></button>
-      <button data-out="print"><svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /> <path d="M14 2v5a1 1 0 0 0 1 1h5" /> <path d="M10 9H8" /> <path d="M16 13H8" /> <path d="M16 17H8" /></svg><span><b>PDF로 저장</b><i>종이로 뽑거나, 어디서나 똑같이 보일 때</i></span></button>
+      <button data-out="peek"><svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /> <circle cx="12" cy="12" r="3" /></svg><span><b>먼저 보기</b><i>«파일 한 장으로» 의 모습을 새 탭에서 미리 봅니다</i></span></button>
+      <button data-out="print"><svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /> <path d="M14 2v5a1 1 0 0 0 1 1h5" /> <path d="M10 9H8" /> <path d="M16 13H8" /> <path d="M16 17H8" /></svg><span><b>PDF로 저장</b><i>인쇄 창이 열립니다 — 거기서 «PDF로 저장»을 고르세요</i></span></button>
       <button data-out="ppt"><svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h20" /> <path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3" /> <path d="m7 21 5-5 5 5" /></svg><span><b>PPT로 저장</b><i>발표하거나, 받는 사람이 고쳐 쓰게 할 때</i></span></button>
       <button data-out="docx"><svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22h6a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v6" /> <path d="M14 2v5a1 1 0 0 0 1 1h5" /> <path d="M3 16v-1.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5V16" /> <path d="M6 22h2" /> <path d="M7 14v8" /></svg><span><b>워드로 저장</b><i>사내 문서 양식에 맞춰 이어 쓸 때 (한글에서도 열림)</i></span></button>
       <button data-out="html"><svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.15V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2h-3.35" /> <path d="M14 2v5a1 1 0 0 0 1 1h5" /> <path d="m5 16-3 3 3 3" /> <path d="m9 22 3-3-3-3" /></svg><span><b>파일 한 장으로</b><i>두 번 눌러 바로 열게, 프로그램 없이 보낼 때</i></span></button>
@@ -999,6 +1056,16 @@
   <h1 id="cover-title"></h1>
   <div id="cover-sub"></div>
   <div id="cover-intro"></div>
+</div>
+
+<div id="findbar" hidden>
+  <input id="find" type="search" placeholder="단계에서 찾을 말" aria-label="단계 찾기" autocomplete="off">
+  <span id="findn" class="hint"></span>
+  <span class="sep"></span>
+  <input id="swap" type="text" placeholder="이 말로 바꾸기" aria-label="찾은 말을 이 말로 바꿉니다" autocomplete="off" hidden>
+  <button id="swapgo" hidden>모두 바꾸기</button>
+  <span class="grow"></span>
+  <button id="findclose" aria-label="찾기 닫기">닫기</button>
 </div>
 
 <div id="stage">
@@ -1022,19 +1089,23 @@
     <p class="safe">사진은 이 컴퓨터를 벗어나지 않습니다. 인터넷이 끊겨 있어도 됩니다.</p>
   </div>
   <div id="steps"></div>
+  <div id="tailbar">
+    <button id="b-addimg"><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 11-1.296-1.296a2.4 2.4 0 0 0-3.408 0L11 16" /> <path d="M4 8a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2" /> <circle cx="13" cy="7" r="1" fill="currentColor" /> <rect x="8" y="2" width="14" height="14" rx="2" /></svg>사진 파일로 단계 넣기</button>
+    <span class="hint">그림 파일을 창에 끌어다 놓아도 됩니다</span>
+  </div>
 </div>
 
 <div id="outro"></div>
 
 <div id="spill">
-  <b>브라우저에 자동 저장할 자리가 찼습니다.</b>
-  사진이 많아서입니다. 지금까지 만든 것을 <button id="spill-save">작업 파일로 저장</button>해 두세요.
+  <b>브라우저에 자동 저장이 안 되고 있습니다.</b>
+  저장할 자리가 찼거나 이 브라우저가 저장을 막고 있습니다. 지금까지 만든 것을 <button id="spill-save">작업 파일로 저장</button>해 두세요.
   파일로 저장하면 안전하고, 나중에 불러오면 그대로 이어집니다.
 </div>
 
 <div id="bottom">
   <span id="status">준비됨</span>
-  <span id="savedat" class="hint"></span>
+  <span id="savedat" class="hint" aria-live="polite"></span>
   <span class="grow"></span>
   <span>이 화면은 컴퓨터 밖으로 나가지 않습니다</span>
 </div>
@@ -1043,7 +1114,7 @@
 
 <div id="rew">
   <div id="rewtop">
-    <span class="lead">최근 화면입니다. 빠뜨린 순간을 고르면 그 자리에 단계로 넣습니다.</span>
+    <span class="lead">최근 화면입니다. 빠뜨린 순간을 고르면 <b>맨 뒤에</b> 단계로 넣습니다 — 자리는 끌어서 옮기세요. 되감은 사진은 화면을 줄여 담아 둔 것이라 직접 찍은 것보다 거칩니다.</span>
     <span class="grow"></span>
     <button class="tool" id="rew-close">닫기</button>
   </div>
@@ -1126,7 +1197,7 @@
 </div>
 
 <input type="file" id="fileinput" accept="application/json" hidden>
-<input type="file" id="imginput" accept="image/*" hidden>
+<input type="file" id="imginput" accept="image/*" multiple hidden>
 
 <div id="bulk" role="toolbar" aria-label="고른 단계에 할 일">
   <span class="n" id="bulkn"></span>
@@ -1136,15 +1207,21 @@
   <button data-bulk="none">고르기 해제</button>
 </div>
 
+<div id="tabwarn">
+  <b>다른 탭에서 같은 매뉴얼을 열었습니다.</b>
+  한쪽에서만 고치세요. 양쪽에서 고치면 나중에 저장한 쪽이 상대를 덮습니다.
+  <button id="tabwarn-close">알겠습니다</button>
+</div>
+
 <div id="help">
   <div id="helpin">
     <h2>지름길</h2>
     <dl>
       <dt>Space</dt><dd>지금 화면을 손으로 찍습니다</dd>
-      <dt>Ctrl + Z</dt><dd>되돌리기</dd>
-      <dt>Ctrl + Shift + Z</dt><dd>다시 실행</dd>
+      <dt>Ctrl + Z</dt><dd>되돌리기 — 글을 쓰는 칸 안에서는 그 칸의 글자만 되돌립니다</dd>
+      <dt>Ctrl + Shift + Z</dt><dd>다시 실행 (Ctrl + Y 도 같습니다)</dd>
       <dt>Ctrl + F</dt><dd>단계 찾기 — 찾으면 그 말을 한 번에 바꿀 수도 있습니다</dd>
-      <dt>번호 누르기</dt><dd>그 단계를 고릅니다. Shift 로 누르면 사이가 통째로 골라집니다</dd>
+      <dt>번호 누르기</dt><dd>그 단계를 고릅니다. Shift 로 누르면 사이가 통째로 골라집니다 (섹션은 이름을 Shift 로 누릅니다)</dd>
       <dt>Esc</dt><dd>열린 창 닫기 · 고른 것 풀기</dd>
       <dt>?</dt><dd>이 목록 보기</dd>
     </dl>
@@ -1521,7 +1598,7 @@ function renderSide() {
    탭 제목이 유일하게 보이는 자리라, 담긴 개수를 거기에 적는다. */
 const TITLE0 = document.title;
 function paintTitle() {
-  const n = state.steps.filter(x => !x.sec).length;
+  const n = state.steps.filter(x => !x.sec && x.img).length;   // "장" 은 사진 수다
   if (!WATCH.on && !stream) { document.title = TITLE0; return; }
   const 상태 = state.paused ? "잠시 멈춤" : (WATCH.on ? "담는 중" : "찍기 켜짐");
   document.title = n + "장 · " + 상태 + " — showhow";
@@ -1532,15 +1609,18 @@ function render() {
   box.innerHTML = "";
   $("#empty").style.display = state.steps.length ? "none" : "block";
   document.body.classList.toggle("blank", !state.steps.length);
-  const nSteps = state.steps.filter(x => !x.sec).length;
+  document.body.classList.toggle("working", state.steps.length > 0);
+  const 살아있는 = live();
+  const nSteps = 살아있는.filter(x => !x.sec).length;
   const nSecs = state.steps.filter(x => x.sec).length;
-  const 빈제목 = state.steps.filter(x => !x.sec && !x.title).length;
+  const 빈제목 = 살아있는.filter(x => !x.sec && !x.title).length;
   $("#counthint").innerHTML = nSteps
     ? esc(nSteps + "단계" + (nSecs ? " · " + nSecs + "섹션" : "")) +
       (빈제목 ? ' <button id="gonext" class="warnlink">제목 없는 단계 ' + 빈제목 + '</button>' : "")
     : "";
   const 가기 = $("#gonext");
   if (가기) 가기.onclick = () => {
+    if (FIND.q) { $("#find").value = ""; 찾기(""); }   // 감춰진 것으로는 못 간다
     const i = state.steps.findIndex(x => !x.sec && !x.title);
     if (i < 0) return;
     const el = document.querySelectorAll("#steps .step, #steps .sec")[i];
@@ -1554,7 +1634,14 @@ function render() {
   // 찾을 것이 없으면 찾기 칸도 없다. 빈 화면에 뜬 찾기 칸은 눈만 어지럽힌다.
   const 찾을만하다 = nSteps >= 2;
   $("#findwrap").hidden = !찾을만하다;
-  if (!찾을만하다 && FIND.q) { $("#find").value = ""; FIND.q = ""; $("#findn").textContent = ""; }
+  if (!찾을만하다) {
+    $("#findbar").hidden = true;
+    if (FIND.q || !$("#swap").hidden) {
+      $("#find").value = ""; FIND.q = ""; $("#findn").textContent = "";
+      $("#swap").hidden = true; $("#swapgo").hidden = true;
+      document.body.classList.remove("finding");
+    }
+  }
 
   let n = 0, cur = "";
   state.steps.forEach((s, i) => {
@@ -1581,7 +1668,7 @@ function render() {
       cur = s.off ? "off" : "";
       return;
     }
-    if (cur === "off") { s._off = true; } else { delete s._off; }
+    if (cur === "off" || s.off) { s._off = true; } else { delete s._off; }
     if (!s._off) n++;
     const el = document.createElement("div");
     el.className = "step" + (s._off ? " hidden" : "");
@@ -1599,10 +1686,12 @@ function render() {
           '<button data-act="merge">' + 아이콘("합치기", 15) + '위와 합치기</button>' +
           '<button data-act="split">' + 아이콘("나누기", 15) + '둘로 나누기</button>' +
           '<button data-act="copy">' + 아이콘("복제", 15) + '복제</button>' +
-          '<button data-act="swap" title="이 단계의 사진을 다른 그림으로 바꿉니다">' + 아이콘("사진", 15) + '사진 바꾸기</button>' +
+          '<button data-act="swap" title="' + (s.img ? "이 단계의 사진을 다른 그림으로 바꿉니다" : "이 단계에 넣을 그림 파일을 고릅니다") + '">' +
+            아이콘("사진", 15) + (s.img ? '사진 바꾸기' : '사진 넣기') + '</button>' +
           '<button data-act="up">' + 아이콘("위로", 15) + '위로</button>' +
           '<button data-act="down">' + 아이콘("아래로", 15) + '아래로</button>' +
           '<button data-act="del">' + 아이콘("삭제", 15) + '삭제</button>' +
+          (s.off ? '<button data-act="unskip">' + 아이콘("넣기", 15) + '다시 넣기</button>' : '') +
         '</div>' +
       '</div>';
     const t = el.querySelector(".stitle"), d = el.querySelector(".sdesc");
@@ -1659,6 +1748,9 @@ function act(a, i) {
     snap({ del: "삭제", merge: "합치기", split: "나누기", up: "위로", down: "아래로" }[a]);
   }
   if (a === "merge") {
+    if (state.steps[i - 1] && state.steps[i - 1].sec) {
+      say("바로 위가 섹션 머리입니다 — 다른 묶음의 단계와는 안 합칩니다"); return;
+    }
     let j = i - 1;
     while (j >= 0 && state.steps[j].sec) j--;
     if (j < 0) { say("위에 합칠 단계가 없습니다"); return; }
@@ -1689,6 +1781,14 @@ function act(a, i) {
     state.steps.splice(i + 1, 0, nu);
     render(); save();
     say("둘로 나눴습니다 — 아래 단계에 제목을 붙여 주세요");
+    return;
+  }
+  if (a === "unskip") {               // 뺐던 단계를 도로 넣는다
+    snap("다시 넣기");
+    const st = state.steps[i];
+    if (st) st.off = false;
+    render(); save();
+    say("도로 넣었습니다");
     return;
   }
   if (a === "swap") {                 // 사진을 갈아 끼운다
@@ -1744,10 +1844,12 @@ function openMark(i) {
   const s = state.steps[i];
   if (!s || !s.img) { say("사진이 있는 단계에서만 표시할 수 있습니다"); return; }
   MK.i = i;
+  MK.cropped = false;
   MK.marks = (s.marks || []).slice();
   MK.base = new Image();
   MK.base.onload = () => { fitMark(); drawMark(); };
-  MK.base.src = s.orig || s.img;
+  // 자른 뒤에는 자른 그림으로 다시 연다. 원본으로 열면 다 했어요 한 번에 자르기가 사라진다.
+  MK.base.src = s.cropped ? s.img : (s.orig || s.img);
   $("#mark").classList.add("on");
   setTool("box");
 }
@@ -1764,7 +1866,7 @@ function setTool(t) {
   $("#markhint").textContent =
     t === "crop" ? "남길 부분만 끌어서 고르세요 — 나머지는 잘려 나갑니다."
     : t === "badge" ? "누른 자리에 번호가 붙습니다."
-    : t === "blur" ? "가릴 곳을 끌어서 덮으세요 — 그 부분은 완전히 지워집니다."
+    : t === "blur" ? "가릴 곳을 끌어서 덮으세요 — 덮은 자리는 원본에서도 지워집니다(되돌릴 수 없습니다)."
     : t === "arrow" ? "가리킬 방향으로 끄세요."
     : t === "text" ? "글자를 넣을 자리를 누르세요."
     : t === "erase" ? "지울 표시를 누르세요."
@@ -1940,6 +2042,7 @@ function doCrop(r) {
                        .filter(m => m.x > -20 && m.y > -20 && m.x < c2.width + 20 && m.y < c2.height + 20);
     fitMark(); drawMark();
     setTool("box");
+    MK.cropped = true;          // 다시 열 때 원본이 아니라 자른 것으로 열게
     say("잘랐습니다 — 표시는 따라옵니다");
   };
   im.src = url;
@@ -1953,9 +2056,13 @@ $("#mark-clear").onclick = () => { MK.marks = []; drawMark(); };
 $("#mark-done").onclick = () => {
   const s = state.steps[MK.i];
   if (s) {
+    snap("표시하기");
     if (!s.orig) s.orig = s.img;          // 원본은 따로 지킨다 (angela 요구 6번)
     s.marks = MK.marks;
     s.img = $("#markcv").toDataURL("image/png");
+    if (MK.cropped) s.cropped = true;     // 자른 것은 다음에 열 때도 자른 채로
+    // 가린 것은 원본에서도 지운다. 안 그러면 "사진 원본만" 으로 가린 내용이 그대로 나간다.
+    if (MK.marks.some(m => m.t === "blur")) s.orig = s.img;
   }
   $("#mark").classList.remove("on");
   render(); save();
@@ -1964,15 +2071,33 @@ $("#mark-done").onclick = () => {
 
 /* ── 저장: 브라우저 안에 자동, 파일로도 ── */
 let boxTimer = null;
+let boxLastAt = 0;              // 마지막으로 진짜 써 넣은 때
+const BOXWAIT = 1200;           // 손을 뗀 뒤 이만큼 기다렸다 쓴다
+const BOXMAX = 4000;            // 쉬지 않고 쳐도 이만큼 지나면 그냥 쓴다
+
+/* 타이머를 미루기만 하면, 쉬지 않고 치는 동안에는 한 번도 안 써진다.
+   그래서 상한을 둔다 — 마지막으로 쓴 지 4초가 넘었으면 미루지 않고 바로 쓴다. */
 function boxLater() {
+  if (!state.id) return;                       // 이름표 없는 것은 안 쌓는다
+  const 밀린시간 = Date.now() - boxLastAt;
+  if (밀린시간 >= BOXMAX) { boxNow(); return; }
   if (boxTimer) clearTimeout(boxTimer);
-  boxTimer = setTimeout(() => { boxTimer = null; if (state.steps.length) boxSave(); }, 1500);
+  boxTimer = setTimeout(boxNow, BOXWAIT);
 }
+function boxNow() {
+  if (boxTimer) { clearTimeout(boxTimer); boxTimer = null; }
+  boxLastAt = Date.now();
+  // 단계가 0이어도 쓴다. 안 쓰면 "다 지웠는데 새로고침하니 되살아났다" 가 된다.
+  return boxSave();
+}
+/* 창을 덮거나 떠날 때는 기다리지 않고 바로 쓴다. */
+addEventListener("visibilitychange", () => { if (document.hidden && boxTimer) boxNow(); });
+addEventListener("pagehide", () => { if (boxTimer) boxNow(); });
 /* 정본은 큰 칸(IndexedDB)이다. 사진이 커도 안 찬다.
    작은 칸에는 사진을 뺀 글만 남긴다 — 큰 칸이 죽어도 글은 살아남게. */
 function 글만(st) {
   return {
-    id: st.id, name: st.name, form: st.form || null,
+    id: st.id, name: st.name, form: st.form || null, at: Date.now(),
     steps: (st.steps || []).map(x => ({
       sec: x.sec, off: x.off, title: x.title, desc: x.desc,
       hint: x.hint, auto: x.auto, guess: x.guess,
@@ -1987,10 +2112,11 @@ function save() {
   try {
     localStorage.setItem("manualCurrent", state.id || "");
     localStorage.setItem("manualDraft", JSON.stringify(글만(state)));
-    if (state.spill) { state.spill = false; $("#spill").classList.remove("on"); }
+    // 여기서 경고를 끄지 않는다. 진짜로 큰 칸에 들어갔을 때(boxSave)만 끈다.
   } catch (e) {
     state.spill = true;
     $("#spill").classList.add("on");
+    paintSaved();
   }
 }
 function load() {
@@ -2006,7 +2132,7 @@ function load() {
       $("#docname").value = state.name;
       paintCover();
       render();
-      if (state.steps.length) say("이어서 작업합니다 — " + state.steps.length + "단계 불러옴");
+      if (state.steps.length) say("이어서 작업합니다 — " + state.steps.filter(x => !x.sec).length + "단계 불러옴");
     }
   } catch (e) {}
 }
@@ -2083,9 +2209,19 @@ async function boxDel(id) {
    목록에는 안 보인다 — 매뉴얼이 여섯 배로 불어난 것처럼 보이면 안 되니까. */
 const BAK = { MAX: 5, at: 0, EVERY: 10 * 60 * 1000 };
 
+/* 마지막 백업 때를 기억한다. 변수만 쓰면 새로고침마다 0 이 되어,
+   여섯 번만 새로 열면 진짜 예전 판 다섯 벌이 전부 밀려난다. */
+function 백업때() {
+  if (BAK.at) return BAK.at;
+  try { BAK.at = Number(localStorage.getItem("manualBakAt") || 0) || 0; } catch (e) {}
+  return BAK.at;
+}
 async function 백업(왜) {
   if (!state.id || !state.steps.length) return false;
   const at = Date.now();
+  // 자리를 **먼저** 비운다. 나중에 비우면, 칸이 찼을 때 비울 기회가 영영 안 온다.
+  const 옛 = (await boxRaw()).filter(d => d.bak && d.of === state.id).sort((a, b) => b.at - a.at);
+  for (const d of 옛.slice(Math.max(0, BAK.MAX - 1))) await boxDel(d.id);
   const ok = await boxPut({
     id: "bak:" + state.id + ":" + at, bak: true, of: state.id, why: 왜 || "자동",
     name: state.name || "새 매뉴얼", at,
@@ -2093,8 +2229,7 @@ async function 백업(왜) {
   });
   if (!ok) return false;
   BAK.at = at;
-  const 옛 = (await boxRaw()).filter(d => d.bak && d.of === state.id).sort((a, b) => b.at - a.at);
-  for (const d of 옛.slice(BAK.MAX)) await boxDel(d.id);
+  try { localStorage.setItem("manualBakAt", String(at)); } catch (e) {}
   return true;
 }
 
@@ -2105,7 +2240,8 @@ async function 예전판보기() {
   if (!list.length) { el.innerHTML = ""; return; }
   const when = t => {
     const d = new Date(t), z = n => String(n).padStart(2, "0");
-    return z(d.getMonth() + 1) + "." + z(d.getDate()) + " " + z(d.getHours()) + ":" + z(d.getMinutes());
+    return z(d.getMonth() + 1) + "." + z(d.getDate()) + " " +
+      z(d.getHours()) + ":" + z(d.getMinutes()) + ":" + z(d.getSeconds());
   };
   el.innerHTML = '<h3>지금 매뉴얼의 예전 판</h3>' +
     '<p class="lead">고치다 크게 어긋났을 때 돌아올 자리입니다. 열 분마다 한 벌씩, 다섯 벌까지 둡니다.</p>' +
@@ -2123,7 +2259,11 @@ async function 예전판으로(id) {
   await 백업("되돌리기 직전");
   snap("예전 판으로 되돌리기");
   state.steps = JSON.parse(JSON.stringify(d.steps || []));
-  render(); save(); await boxSave(); await 예전판보기();
+  if (d.name) { state.name = d.name; $("#docname").value = d.name; }
+  state.form = d.form || null;
+  paintCover(); render(); save();
+  await boxNow(); await boxPaint(); await 예전판보기();
+  boxShow(false);                       // 창이 덮고 있으면 무슨 일이 났는지 안 보인다
   say("예전 판으로 되돌렸습니다 — " + state.steps.filter(x => !x.sec).length + "단계 · Ctrl+Z 로 취소");
 }
 
@@ -2134,32 +2274,49 @@ function docNow() {
            steps: state.steps, form: state.form || null };
 }
 async function boxSave() {
-  await boxPut(docNow());
-  state.savedAt = Date.now();
+  const ok = await boxPut(docNow());
+  if (ok) {
+    state.savedAt = Date.now();
+    boxLastAt = Date.now();
+    if (state.spill) { state.spill = false; $("#spill").classList.remove("on"); }
+  } else {
+    // 안 들어갔는데 "저장됨" 이라고 적으면 사람은 믿고 창을 닫는다.
+    state.savedAt = 0;
+    state.spill = true;
+    $("#spill").classList.add("on");
+  }
   paintSaved();
-  // 열 분에 한 벌. 저장할 때 같이 떠 두면 따로 챙길 일이 없다.
-  if (state.steps.length && Date.now() - BAK.at > BAK.EVERY) await 백업("자동");
+  if (ok && state.steps.length && Date.now() - 백업때() > BAK.EVERY) await 백업("자동");
+  return ok;
 }
 
 /* 언제 저장됐는지 보여 준다. 안 보이면 사람은 저장됐는지 모른다. */
 function paintSaved() {
   const el = $("#savedat");
   if (!el) return;
+  el.style.marginLeft = "var(--spacing-3)";
+  if (state.spill) { el.textContent = "저장 못 함"; el.classList.add("bad"); return; }
+  el.classList.remove("bad");
   if (!state.savedAt) { el.textContent = ""; return; }
   const 초 = Math.round((Date.now() - state.savedAt) / 1000);
   el.textContent = 초 < 5 ? "저장됨"
     : 초 < 60 ? 초 + "초 전 저장"
     : Math.round(초 / 60) + "분 전 저장";
 }
-setInterval(paintSaved, 15000);
+setInterval(paintSaved, 5000);
 
 function docInto(d) {
+  // 앞 매뉴얼의 되돌리기 기록을 그대로 두면, 여기서 Ctrl+Z 를 눌렀을 때
+  // 남의 단계가 이 문서를 통째로 덮는다.
+  UNDO.stack.length = 0; UNDO.redo.length = 0;
+  고르기해제();
   state.id = d.id || newId();
   state.name = d.name || "새 매뉴얼";
   state.steps = Array.isArray(d.steps) ? d.steps : [];
   state.form = d.form || null;
   $("#docname").value = state.name;
   paintCover(); render(); save();
+  탭알림(); 탭되묻기();          // 문서를 갈아탔으면 다시 알린다
 }
 
 async function boxOpenDoc(id) {
@@ -2169,7 +2326,7 @@ async function boxOpenDoc(id) {
   await boxSave();                       // 보던 것을 먼저 넣어 두고 옮긴다
   docInto(d);
   boxShow(false);
-  say("열었습니다 — " + state.name + " · " + state.steps.length + "단계");
+  say("열었습니다 — " + state.name + " · " + state.steps.filter(x => !x.sec).length + "단계");
 }
 async function boxNew() {
   await boxSave();
@@ -2190,8 +2347,11 @@ async function boxCopy() {
 async function boxRemove(id) {
   if (id === state.id) { say("지금 보고 있는 매뉴얼은 지울 수 없습니다"); return; }
   await boxDel(id);
+  // 예전 판도 같이 지운다. 안 그러면 사진까지 든 사본이 보이지 않는 곳에 남는다.
+  const 딸린것 = (await boxRaw()).filter(d => d.bak && d.of === id);
+  for (const d of 딸린것) await boxDel(d.id);
   await boxPaint();
-  say("지웠습니다");
+  say(딸린것.length ? "지웠습니다 — 예전 판 " + 딸린것.length + "벌도 같이" : "지웠습니다");
 }
 async function boxRename(id) {
   const list = await boxAll();
@@ -2289,18 +2449,49 @@ async function boxShow(on) {
 }
 
 /* 작은 칸에는 글만 있다. 사진까지 든 진짜 최신본을 큰 칸에서 꺼내 덮는다. */
+/* 작은 칸에는 글만 있고 큰 칸에는 사진까지 있다.
+   둘 중 **더 새것**을 살려야 한다. 옛 것으로 덮으면 방금 친 글이 사라진다. */
 async function loadFull() {
-  let id = "";
-  try { id = localStorage.getItem("manualCurrent") || ""; } catch (e) {}
+  let id = "", 초안때 = 0;
+  try {
+    id = localStorage.getItem("manualCurrent") || "";
+    const raw = localStorage.getItem("manualDraft");
+    if (raw) { const dr = JSON.parse(raw); if (dr && dr.id === id) 초안때 = dr.at || 0; }
+  } catch (e) {}
   if (!id) return;
   const list = await boxAll();
   const d = list.find(x => x.id === id);
-  if (!d || !d.steps || !d.steps.length) return;
-  const 사진있음 = d.steps.some(x => x.img);
-  if (!사진있음 && state.steps.length) return;
+  if (!d || !d.steps) return;
+
+  const 큰칸때 = d.at || 0;
+  if (초안때 && 큰칸때 && 초안때 > 큰칸때 + 500 && state.steps.length) {
+    // 작은 칸이 더 새것이다. 글은 그대로 두고 사진만 큰 칸에서 꿰맞춘다.
+    const 붙임 = 사진꿰기(state.steps, d.steps);
+    render(); save();
+    say(붙임
+      ? "이어서 작업합니다 — 마지막으로 친 글까지 살렸습니다"
+      : "이어서 작업합니다 — 사진 몇 장은 마지막 저장분입니다");
+    return;
+  }
+  if (!d.steps.length && !state.steps.length) return;
   docInto(d);
-  if (state.spill) { state.spill = false; $("#spill").classList.remove("on"); }
   say("이어서 작업합니다 — " + state.steps.filter(x => !x.sec).length + "단계");
+}
+
+/* 글만 남은 단계에 큰 칸의 사진을 자리 순서대로 얹는다.
+   자리 수가 다르면 못 얹는다 — 엉뚱한 사진을 붙이느니 안 붙이는 편이 낫다. */
+function 사진꿰기(글단계, 큰칸단계) {
+  if (글단계.length !== 큰칸단계.length) return false;
+  let 얹음 = 0;
+  글단계.forEach((st, i) => {
+    const src = 큰칸단계[i];
+    if (!src || !!st.sec !== !!src.sec) return;
+    if (src.img && !st.img) {
+      st.img = src.img; st.orig = src.orig; st.marks = src.marks;
+      st.spot = src.spot; st.extra = src.extra; 얹음++;
+    }
+  });
+  return 얹음 > 0 || !큰칸단계.some(x => x.img);
 }
 
 function saveFile() {
@@ -2311,23 +2502,24 @@ function saveFile() {
   a.download = 파일이름(".manual.json");
   a.click();
   state.saved = true;
-  if (state.spill) { state.spill = false; $("#spill").classList.remove("on"); say("파일로 저장했습니다 — 이제 안전합니다"); }
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  say("작업 파일로 저장했습니다");
+  say(state.spill
+    ? "작업 파일로 저장했습니다 — 브라우저 자동 저장이 안 되고 있으니 이 파일을 꼭 두세요"
+    : "작업 파일로 저장했습니다");
 }
 
 function openFile(file) {
-  백업("파일 열기 직전");        // 지금 것을 덮기 직전이 제일 위험하다
   const r = new FileReader();
-  r.onload = () => {
+  r.onload = async () => {
     try {
       const d = JSON.parse(r.result);
       if (!d || !Array.isArray(d.steps)) throw 0;
+      await 백업("파일 열기 직전");   // 진짜 덮기 직전에만 한 벌 — 못 여는 파일에 자리를 안 쓴다
       state.id = d.id || newId(); state.name = d.name || "새 매뉴얼";
       state.steps = d.steps; state.form = d.form || null;
       $("#docname").value = state.name;
       paintCover(); render(); save(); boxSave();
-      say("불러왔습니다 — " + state.steps.length + "단계 · 매뉴얼 목록에도 들어갔습니다");
+      say("불러왔습니다 — " + state.steps.filter(x => !x.sec).length + "단계 · 매뉴얼 목록에도 들어갔습니다");
     } catch (e) { say("이 파일은 열 수 없습니다"); }
   };
   r.readAsText(file);
@@ -2395,6 +2587,19 @@ function dataURLtoBytes(u) {
   for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i);
   return a;
 }
+/* 내보낼 것이 없을 때, 왜 없는지를 가려 말한다.
+   눈앞에 단계가 있는데 "먼저 단계를 만들어 주세요" 라고 하면 사람은 어디를 고칠지 모른다. */
+function 내보낼말() {
+  return state.steps.some(x => !x.sec)
+    ? "내보낼 단계가 없습니다 — 전부 «이번엔 빼기» 해 두었습니다"
+    : "먼저 단계를 만들어 주세요";
+}
+
+/* 한 단계가 가진 사진 전부. 합치면 둘째 사진이 딸려 붙는데(extra),
+   여기를 안 쓰면 "사진은 둘 다 남습니다" 가 거짓말이 된다. */
+function 사진들(st) {
+  return [st.img].concat(st.extra || []).filter(Boolean);
+}
 function esc(s) {
   return String(s || "").replace(/[<>&"']/g, c =>
     ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" }[c]));
@@ -2421,16 +2626,25 @@ function download(blob, name) {
 function exportImages() {
   const files = [];
   let n = 0;
+  let 화면수 = 0;
   live().forEach(s => {
-    if (s.sec || !s.img) return;
-    n++;
-    const nm = String(n).padStart(2, "0") + "_" + (s.title || "단계").replace(/[\\/:*?"<>|]/g, "") + ".png";
-    files.push({ name: "원본/" + nm, data: dataURLtoBytes(s.orig || s.img) });
-    if (s.orig && s.img !== s.orig) files.push({ name: "표시본/" + nm, data: dataURLtoBytes(s.img) });
+    if (s.sec) return;
+    n++;                                  // 사진 없는 단계도 번호를 쓴다 — 화면 번호와 맞춰야 한다
+    if (!s.img) return;
+    사진들(s).forEach((src, k) => {
+      화면수++;
+      const nm = String(n).padStart(2, "0") + (k ? "-" + (k + 1) : "") + "_" +
+        (s.title || "단계").replace(/[\\/:*?"<>|]/g, "") + ".png";
+      const 원본 = k ? src : (s.orig || src);
+      files.push({ name: "원본/" + nm, data: dataURLtoBytes(원본) });
+      if (!k && s.orig && s.img !== s.orig) files.push({ name: "표시본/" + nm, data: dataURLtoBytes(s.img) });
+    });
   });
   if (!files.length) { say("저장할 사진이 없습니다"); return; }
   download(zipMake(files), 파일이름("_사진.zip"));
-  say("사진 " + files.length + "장을 묶어 저장했습니다");
+  // 파일 수가 아니라 화면 수를 센다. 표시본이 따로 들어가면 파일은 두 배가 된다.
+  const 표시본수 = files.length - 화면수;
+  say("화면 " + 화면수 + "개를 묶었습니다" + (표시본수 ? " — 표시한 것은 표시본 폴더에 따로 " + 표시본수 + "장" : ""));
 }
 
 /* ── 파워포인트 (angela 요구 5번) ── */
@@ -2503,20 +2717,25 @@ async function exportPPT() {
   for (const s of live()) {
     if (s.sec) { slides.push({ title: s.title || "섹션", desc: "", num: 0 }); continue; }
     n++;
-    const item = { title: s.title || "", desc: s.desc || "", num: n, img: s.img };
-    if (s.img) {
-      const dim = await new Promise(res => {
-        const im = new Image();
-        im.onload = () => res({ w: im.naturalWidth, h: im.naturalHeight });
-        im.onerror = () => res({ w: 1200, h: 750 });
-        im.src = s.img;
-      });
-      item.iw = dim.w; item.ih = dim.h;
+    const 그림들 = 사진들(s);
+    const 잴것 = 그림들.length ? 그림들 : [null];
+    for (let k = 0; k < 잴것.length; k++) {
+      const item = { title: k ? (s.title || "") + " (이어서)" : (s.title || ""),
+                     desc: k ? "" : (s.desc || ""), num: k ? 0 : n, img: 잴것[k] || undefined };
+      if (잴것[k]) {
+        const dim = await new Promise(res => {
+          const im = new Image();
+          im.onload = () => res({ w: im.naturalWidth, h: im.naturalHeight });
+          im.onerror = () => res({ w: 1200, h: 750 });
+          im.src = 잴것[k];
+        });
+        item.iw = dim.w; item.ih = dim.h;
+      }
+      slides.push(item);
     }
-    slides.push(item);
   }
   if (F.outro) slides.push({ title: "", desc: F.outro, num: 0, tail: true });
-  if (!slides.length) { say("먼저 단계를 만들어 주세요"); return; }
+  if (!slides.length) { say(내보낼말()); return; }
 
   const files = [];
   const push = (name, str) => files.push({ name, data: enc.encode(str) });
@@ -2635,7 +2854,7 @@ function live() {
   const out = []; let off = false;
   for (const s of state.steps) {
     if (s.sec) { off = !!s.off; if (!off) out.push(s); continue; }
-    if (!off) out.push(s);
+    if (!off && !s.off) out.push(s);      // 단계 하나만 뺄 수도 있다
   }
   return out;
 }
@@ -2670,7 +2889,7 @@ function cutText(t) {
    받는 사람이 워드·한글·구글 문서 어디서 열어도 글자는 글자로, 사진은 사진으로 남는다. */
 async function exportDOCX() {
   const list = live();
-  if (!list.length) { say("먼저 단계를 만들어 주세요"); return; }
+  if (!list.length) { say(내보낼말()); return; }
   const F = state.form || {};
   const files = [];
   const push = (name, str) => files.push({ name, data: enc.encode(str) });
@@ -2681,15 +2900,17 @@ async function exportDOCX() {
   const EMU = 914400;                 // 1인치
   const COLW = 6.0 * EMU;             // A4 본문 폭 약 6인치
   for (const st of list) {
-    if (st.sec || !st.img) continue;
-    const dim = await new Promise(res => {
-      const im = new Image();
-      im.onload = () => res({ w: im.naturalWidth || 1200, h: im.naturalHeight || 750 });
-      im.onerror = () => res({ w: 1200, h: 750 });
-      im.src = st.img;
-    });
-    const w = Math.min(COLW, dim.w * (EMU / 96));
-    media.push({ step: st, id: media.length + 1, cx: Math.round(w), cy: Math.round(w * dim.h / dim.w) });
+    if (st.sec) continue;
+    for (const src of 사진들(st)) {           // 합칠 때 딸려 온 사진까지 전부
+      const dim = await new Promise(res => {
+        const im = new Image();
+        im.onload = () => res({ w: im.naturalWidth || 1200, h: im.naturalHeight || 750 });
+        im.onerror = () => res({ w: 1200, h: 750 });
+        im.src = src;
+      });
+      const w = Math.min(COLW, dim.w * (EMU / 96));
+      media.push({ step: st, src, id: media.length + 1, cx: Math.round(w), cy: Math.round(w * dim.h / dim.w) });
+    }
   }
 
   const par = (text, opt) => {
@@ -2729,11 +2950,12 @@ async function exportDOCX() {
     n++;
     body += par(n + ". " + (st.title || ""), { b: true, sz: 26, after: 80 });
     if (st.desc) String(st.desc).split(/\n/).forEach(t => { body += par(t, { sz: 21, after: 80 }); });
-    if (st.img) {
+    사진들(st).forEach((_, k) => {
       const m = media[mi++];
-      m.alt = n + "번째 단계 화면" + (st.title ? " — " + st.title : "");
+      if (!m) return;
+      m.alt = n + "번째 단계 화면" + (k ? " " + (k + 1) : "") + (st.title ? " — " + st.title : "");
       body += pic(m);
-    }
+    });
   }
   if (F.outro) {
     body += par("", { after: 200 });
@@ -2769,7 +2991,7 @@ async function exportDOCX() {
       'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" ' +
       'Target="media/image' + m.id + '.png"/>').join("") +
     '</Relationships>');
-  media.forEach(m => files.push({ name: "word/media/image" + m.id + ".png", data: dataURLtoBytes(m.step.img) }));
+  media.forEach(m => files.push({ name: "word/media/image" + m.id + ".png", data: dataURLtoBytes(m.src || m.step.img) }));
 
   download(new Blob([zipMake(files)], {
     type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -2781,7 +3003,7 @@ async function exportDOCX() {
    위키·깃헙·노션에 붙일 때 쓴다. 사진은 옆에 딸린 폴더로 나간다. */
 function exportMD() {
   const list = live();
-  if (!list.length) { say("먼저 단계를 만들어 주세요"); return; }
+  if (!list.length) { say(내보낼말()); return; }
   const F = state.form || {};
   const base = (state.name || "매뉴얼").replace(/[\\/:*?"<>|]/g, "");
   const files = [];
@@ -2794,11 +3016,12 @@ function exportMD() {
     n++;
     out += "### " + n + ". " + (st.title || "") + "\n\n";
     if (st.desc) out += st.desc + "\n\n";
-    if (st.img) {
-      const nm = String(n).padStart(2, "0") + "_" + (st.title || "단계").replace(/[\\/:*?"<>|\s]/g, "") + ".png";
-      files.push({ name: base + "/그림/" + nm, data: dataURLtoBytes(st.img) });
-      out += "![" + n + "번째 단계 화면](그림/" + nm + ")\n\n";
-    }
+    사진들(st).forEach((src, k) => {
+      const nm = String(n).padStart(2, "0") + (k ? "-" + (k + 1) : "") + "_" +
+        (st.title || "단계").replace(/[\\/:*?"<>|\s]/g, "") + ".png";
+      files.push({ name: base + "/그림/" + nm, data: dataURLtoBytes(src) });
+      out += "![" + n + "번째 단계 화면" + (k ? " " + (k + 1) : "") + "](그림/" + nm + ")\n\n";
+    });
   }
   if (F.outro) out += "---\n\n" + F.outro + "\n";
   files.unshift({ name: base + "/" + base + ".md", data: enc.encode(out) });
@@ -2810,7 +3033,7 @@ function exportMD() {
    혼자 도는 HTML 파일 하나를 준다. 받는 사람은 두 번 눌러 열면 끝이다. */
 function htmlDoc() {
   const list = live();
-  if (!list.length) return "";
+  if (!list.length) return "";        // 부르는 쪽에서 왜 비었는지 가려 말한다
   const F = state.form || {};
   const esc2 = t => String(t || "").replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
   let n = 0;
@@ -2855,7 +3078,7 @@ function htmlDoc() {
 
 function exportHTML() {
   const html = htmlDoc();
-  if (!html) { say("먼저 단계를 만들어 주세요"); return; }
+  if (!html) { say(내보낼말()); return; }
   download(new Blob([html], { type: "text/html" }), 파일이름(".html"));
   say("파일 하나로 내보냈습니다 — 받는 사람은 두 번 눌러 열면 됩니다");
 }
@@ -2864,12 +3087,12 @@ function exportHTML() {
    나가기 직전이 고칠 수 있는 마지막 자리다. */
 function 미리보기() {
   const html = htmlDoc();
-  if (!html) { say("먼저 단계를 만들어 주세요"); return; }
+  if (!html) { say(내보낼말()); return; }
   const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
   const w = window.open(url, "_blank");
   if (!w) { URL.revokeObjectURL(url); say("새 탭이 막혔습니다 — 이 화면의 팝업을 허용해 주세요"); return; }
   setTimeout(() => URL.revokeObjectURL(url), 60000);
-  say("받는 사람이 볼 모습 그대로 새 탭에 열었습니다");
+  say("«파일 한 장으로» 내보냈을 때의 모습입니다 — 새 탭에서 확인하세요");
 }
 
 /* ── 아이콘 ─────────────────────────────────────────────────────
@@ -3051,25 +3274,46 @@ function 탭알림() {
     localStorage.setItem("manualTab", JSON.stringify({ tab: TAB.id, doc: state.id || "", at: Date.now() }));
   } catch (e) {}
 }
+/* 나중에 연 탭도 알아야 한다. 먼저 열려 있던 탭만 아는 것은 아무 소용이 없다 —
+   사람이 보고 있는 쪽은 방금 연 쪽이다. 그래서 서로 되묻는다. */
+function 탭되묻기() {
+  try {
+    localStorage.setItem("manualTabAsk", JSON.stringify({ tab: TAB.id, doc: state.id || "", at: Date.now() }));
+  } catch (e) {}
+}
 addEventListener("storage", e => {
-  if (e.key !== "manualTab" || !e.newValue) return;
+  if ((e.key !== "manualTab" && e.key !== "manualTabAsk") || !e.newValue) return;
   let v;
   try { v = JSON.parse(e.newValue); } catch (err) { return; }
   if (!v || v.tab === TAB.id) return;
-  if (v.doc && v.doc === state.id) {
-    say("다른 탭에서 같은 매뉴얼을 열었습니다 — 한쪽에서만 고치세요");
-  }
+  if (!v.doc || v.doc !== state.id) return;
+  if (e.key === "manualTabAsk") 탭알림();      // 여기 있다고 되받아 준다
+  같은탭경고();
 });
+
+let 탭경고중 = false;
+function 같은탭경고() {
+  if (탭경고중) return;
+  탭경고중 = true;
+  $("#tabwarn").classList.add("on");
+  say("다른 탭에서 같은 매뉴얼을 열었습니다 — 한쪽에서만 고치세요");
+}
 
 /* ── 여러 단계 한꺼번에 고르기 ──────────────────────────────────
    단계가 예순 개면 하나씩 지우는 것은 일이 아니라 벌이다.
    번호를 누르면 고르고, Shift 로 누르면 사이가 통째로 고른다. */
 const PICK = { set: new Set(), last: -1 };
 
+/* 화면에 보이는 것만 고른다. 찾는 중이면 감춰진 칸은 건너뛴다 —
+   안 보이는 것이 같이 골라져 같이 지워지면 사람은 무슨 일이 났는지 모른다. */
+function 보이는칸인가(i) {
+  const el = document.querySelectorAll("#steps .step, #steps .sec")[i];
+  return !el || !el.classList.contains("away");
+}
 function 고르기(i, shift) {
   if (shift && PICK.last >= 0) {
     const [a, b] = PICK.last < i ? [PICK.last, i] : [i, PICK.last];
-    for (let k = a; k <= b; k++) PICK.set.add(k);
+    for (let k = a; k <= b; k++) if (보이는칸인가(k)) PICK.set.add(k);
   } else {
     if (PICK.set.has(i)) PICK.set.delete(i); else PICK.set.add(i);
     PICK.last = i;
@@ -3081,27 +3325,44 @@ function 고르기해제() { PICK.set.clear(); PICK.last = -1; paintPick(); }
 function paintPick() {
   const 칸들 = document.querySelectorAll("#steps .step, #steps .sec");
   칸들.forEach((el, i) => el.classList.toggle("picked", PICK.set.has(i)));
+  // 사람은 단계를 센다. 섹션 머리까지 한 개로 세면 화면에 보이는 수와 안 맞는다.
+  const 고른것 = [...PICK.set].map(i => state.steps[i]).filter(Boolean);
+  const 단계수 = 고른것.filter(x => !x.sec).length;
+  const 섹션수 = 고른것.filter(x => x.sec).length;
   const n = PICK.set.size;
   $("#bulk").classList.toggle("on", n > 0);
-  $("#bulkn").textContent = n ? n + "개 고름" : "";
+  $("#bulkn").textContent = !n ? ""
+    : [단계수 ? 단계수 + "단계" : "", 섹션수 ? 섹션수 + "섹션" : ""].filter(Boolean).join(" · ") + " 고름";
 }
 
 function 한꺼번에(무엇) {
   const 자리 = [...PICK.set].sort((a, b) => a - b);
   if (!자리.length) return;
   if (무엇 === "none") { 고르기해제(); return; }
+  if (무엇 === "sec" && !자리.some(i => state.steps[i] && !state.steps[i].sec)) {
+    say("섹션 머리만 골랐습니다 — 묶을 단계를 골라 주세요"); return;   // 헛 되돌리기를 안 쌓는다
+  }
   snap({ del: "여러 개 삭제", skip: "여러 개 빼기", sec: "섹션으로 묶기" }[무엇]);
   if (무엇 === "del") {
     for (let k = 자리.length - 1; k >= 0; k--) state.steps.splice(자리[k], 1);
     say(자리.length + "개를 지웠습니다 — 되돌리려면 Ctrl+Z");
   } else if (무엇 === "skip") {
-    자리.forEach(i => { const st = state.steps[i]; if (st && st.sec) st.off = !st.off; });
-    const 섹션수 = 자리.filter(i => state.steps[i] && state.steps[i].sec).length;
-    say(섹션수 ? 섹션수 + "개 섹션을 뺐습니다" : "섹션만 뺄 수 있습니다 — 섹션을 골라 주세요");
+    // 고른 것이 전부 빠져 있으면 도로 넣고, 아니면 전부 뺀다.
+    // 하나씩 뒤집으면 "뺐습니다" 라고 말해 놓고 도로 넣는 일이 생긴다.
+    const 넣을차례 = 자리.every(i => state.steps[i] && state.steps[i].off);
+    자리.forEach(i => { const st = state.steps[i]; if (st) st.off = !넣을차례; });
+    const n = 자리.length;
+    say(넣을차례 ? n + "개를 도로 넣었습니다" : n + "개를 이번 문서에서 뺐습니다 — 내보낼 때 빠집니다");
   } else if (무엇 === "sec") {
+    // 고른 것을 진짜로 한 묶음으로 모은다. 앞에 머리만 꽂으면 묶은 것이 아니다.
+    const 뽑은것 = 자리.map(i => state.steps[i]).filter(x => x && !x.sec);
+    if (!뽑은것.length) { say("섹션 머리만 골랐습니다 — 묶을 단계를 골라 주세요"); 고르기해제(); return; }
     const 첫 = 자리[0];
-    state.steps.splice(첫, 0, { sec: true, title: "새 묶음" });
-    say("고른 것 앞에 섹션을 만들었습니다 — 이름을 달아 주세요");
+    const 남김 = state.steps.filter(x => 뽑은것.indexOf(x) < 0);
+    const 앞자리 = state.steps.slice(0, 첫).filter(x => 남김.indexOf(x) >= 0).length;
+    남김.splice(앞자리, 0, { sec: true, title: "새 묶음" }, ...뽑은것);
+    state.steps = 남김;
+    say(뽑은것.length + "개를 한 묶음으로 모았습니다 — 이름을 달아 주세요");
   }
   고르기해제();
   render(); save();
@@ -3111,7 +3372,7 @@ function 한꺼번에(무엇) {
    자동으로 못 담은 화면이 있다. 파일로 가진 그림을 그 자리에 넣을 수 있어야 한다. */
 const IMG = { mode: "", at: -1 };
 function 사진넣기(file) {
-  if (!file) return;
+  if (!file) { if (IMG.done) { const 끝 = IMG.done; IMG.done = null; 끝(); } return; }
   const r = new FileReader();
   r.onload = () => {
     const url = String(r.result || "");
@@ -3129,6 +3390,7 @@ function 사진넣기(file) {
       state.steps.splice(IMG.at + 1, 0, 새);
       render(); save();
       say("사진을 넣었습니다 — 제목을 달아 주세요");
+      if (IMG.done) { const 끝 = IMG.done; IMG.done = null; IMG.at = IMG.at + 1; 끝(); return; }
       requestAnimationFrame(() => {
         const el = document.querySelectorAll("#steps .step, #steps .sec")[IMG.at + 1];
         const t = el && el.querySelector(".stitle");
@@ -3154,9 +3416,9 @@ function 찾기(q) {
     const 글 = ((st.title || "") + " " + (st.desc || "")).toLowerCase();
     const 맞음 = 글.includes(낱말);
     el.classList.toggle("away", !맞음);
-    if (맞음 && !st.sec) 맞은수++;
+    if (맞음) 맞은수++;      // 섹션 제목도 바꾸기가 손대므로 함께 센다
   });
-  $("#findn").textContent = 낱말 ? (맞은수 ? 맞은수 + "개" : "없음") : "";
+  $("#findn").textContent = !낱말 ? "" : (맞은수 ? 맞은수 + "개" : "없음");
   const 바꿀수있다 = !!낱말 && 맞은수 > 0;
   $("#swap").hidden = !바꿀수있다;
   $("#swapgo").hidden = !바꿀수있다;
@@ -3166,22 +3428,38 @@ function 찾기(q) {
 /* ── 찾아 바꾸기 ────────────────────────────────────────────────
    용어 하나가 바뀌면 예순 단계를 손으로 못 고친다. 찾은 말을 한 번에 바꾼다.
    사진 속 글자는 못 바꾼다 — 제목과 설명만 바뀐다고 미리 말해 준다. */
+/* 찾기가 대소문자를 안 가리므로 바꾸기도 안 가려야 한다.
+   "1개 있다" 고 알려 준 뒤 "그 말이 없습니다" 라고 하면 사람은 속은 기분이 든다. */
+function 갈래나누기(글, 옛) {
+  const 조각 = [], 낮은글 = 글.toLowerCase(), 낮은옛 = 옛.toLowerCase();
+  let 자리 = 0, 찾은 = 낮은글.indexOf(낮은옛);
+  while (찾은 >= 0) {
+    조각.push(글.slice(자리, 찾은));
+    자리 = 찾은 + 옛.length;
+    찾은 = 낮은글.indexOf(낮은옛, 자리);
+  }
+  조각.push(글.slice(자리));
+  return 조각;
+}
 function 모두바꾸기(옛, 새) {
   옛 = String(옛 || "");
   if (!옛) { say("먼저 찾을 말을 적어 주세요"); return 0; }
   let n = 0;
   state.steps.forEach(st => ["title", "desc"].forEach(k => {
-    const v = String(st[k] || "");
-    if (v.includes(옛)) n += v.split(옛).length - 1;
+    n += 갈래나누기(String(st[k] || ""), 옛).length - 1;
   }));
   if (!n) { say("그 말이 없습니다 — 바꾼 것 없음"); return 0; }
   snap("말 바꾸기");                       // 손대기 전에 자리를 떠 둔다
   state.steps.forEach(st => ["title", "desc"].forEach(k => {
-    const v = String(st[k] || "");
-    if (v.includes(옛)) st[k] = v.split(옛).join(String(새 || ""));
+    const 조각 = 갈래나누기(String(st[k] || ""), 옛);
+    if (조각.length > 1) st[k] = 조각.join(String(새 || ""));
   }));
-  render(); save(); 찾기($("#find").value);
-  say(n + "군데를 바꿨습니다 — 사진 속 글자는 그대로입니다 · 되돌리려면 Ctrl+Z");
+  render(); save();
+  // 바꾼 뒤에는 새 말로 다시 거른다. 옛 말로 거르면 방금 바꾼 것이 전부 사라진 것처럼 보인다.
+  const 새말 = String(새 || "");
+  $("#find").value = 새말;
+  찾기(새말);
+  say(n + "군데를 바꿨습니다 — 섹션 이름도 함께 바뀝니다 · 사진 속 글자는 그대로입니다 · 되돌리려면 Ctrl+Z");
   return n;
 }
 
@@ -3237,13 +3515,14 @@ function 파일종류(f) {
   const 이름 = String(f && f.name || "").toLowerCase();
   if (String(f && f.type || "").indexOf("image/") === 0) return "사진";
   if (이름.slice(-15) === ".manualbox.json") return "묶음";
+  if (이름.slice(-16) === ".manualform.json") return "양식";
   if (이름.slice(-5) === ".json") return "매뉴얼";
   return "";
 }
 function 놓인파일(f, 어디) {
   const 종류 = 파일종류(f);
   if (종류 === "사진") {
-    const el = 어디 && 어디.closest ? 어디.closest("#steps .step") : null;
+    const el = 어디 && 어디.closest ? 어디.closest("#steps .step, #steps .sec") : null;
     const 칸들 = [].slice.call(document.querySelectorAll("#steps .step, #steps .sec"));
     IMG.mode = "add";
     IMG.at = el ? 칸들.indexOf(el) : state.steps.length - 1;
@@ -3251,8 +3530,9 @@ function 놓인파일(f, 어디) {
     return "사진";
   }
   if (종류 === "묶음") { 전부가져오기(f); return "묶음"; }
+  if (종류 === "양식") { 양식가져오기(f); return "양식"; }
   if (종류 === "매뉴얼") { openFile(f); return "매뉴얼"; }
-  say("그림 파일이나 매뉴얼 파일만 끌어다 놓을 수 있습니다");
+  say("그림 파일, 매뉴얼 파일, 양식 파일만 끌어다 놓을 수 있습니다");
   return "";
 }
 function 파일끄는중(e) {
@@ -3271,18 +3551,38 @@ addEventListener("dragleave", e => {
 addEventListener("drop", e => {
   document.body.classList.remove("dropping");
   if (DRAG.from >= 0) return;
-  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-  if (!f) return;
+  const 파일들 = (e.dataTransfer && e.dataTransfer.files) || [];
+  if (!파일들.length) return;
   e.preventDefault();
-  놓인파일(f, e.target);
+  놓인파일들([].slice.call(파일들), e.target);
 });
+
+/* 열 장을 끌어다 놓으면 열 장을 다 넣는다. 한 장만 넣고 나머지를 조용히 버리면 안 된다. */
+async function 놓인파일들(목록, 어디) {
+  const 그림 = 목록.filter(f => 파일종류(f) === "사진");
+  const 나머지 = 목록.filter(f => 파일종류(f) !== "사진");
+  for (const f of 나머지) 놓인파일(f, 어디);
+  if (!그림.length) return;
+  for (let k = 0; k < 그림.length; k++) {
+    await 사진기다려넣기(그림[k], k === 0 ? 어디 : null);
+  }
+  if (그림.length > 1) say("사진 " + 그림.length + "장을 넣었습니다 — 제목을 달아 주세요");
+}
+function 사진기다려넣기(f, 어디) {
+  return new Promise(res => {
+    IMG.done = res;                       // 한 장씩 차례로 — 동시에 넣으면 자리가 엉킨다
+    놓인파일(f, 어디);
+    setTimeout(() => { if (IMG.done === res) { IMG.done = null; res(); } }, 3000);
+  });
+}
 
 /* ── 되돌리기: 안 찍힌 것을 꺼낸다 (상용은 유료로 판다) ── */
 function openRewind() {
   const box = $("#rewgrid");
   box.innerHTML = "";
   if (!REWIND.keep.length) {
-    box.innerHTML = '<div id="rewempty">아직 들고 있는 화면이 없습니다. 화면 찍기를 시작하면 최근 3분이 쌓입니다.</div>';
+    box.innerHTML = '<div id="rewempty">아직 들고 있는 화면이 없습니다. 화면 찍기를 시작하면 최근 ' +
+      Math.round(REWIND.MAX * REWIND.every * 0.14) + '초가 쌓입니다.</div>';
   } else {
     const now = Date.now();
     for (let i = REWIND.keep.length - 1; i >= 0; i--) {
@@ -3293,6 +3593,7 @@ function openRewind() {
       el.innerHTML = '<img alt=""><div class="ago">' + (sec < 60 ? sec + "초 전" : Math.round(sec / 60) + "분 전") + '</div>';
       el.querySelector("img").src = k.thumb;
       el.onclick = () => {
+        snap("아까 그 화면 넣기");
         state.steps.push({ title: "", desc: "", img: k.thumb, rewound: true });
         render(); save();
         $("#rew").classList.remove("on");
@@ -3403,7 +3704,7 @@ $("#swap").addEventListener("keydown", e => {
 });
 
 $("#f-close").onclick = closeForm;
-$("#f-apply").onclick = () => { applyForm(readForm()); closeForm(); say("이 양식으로 씁니다 — 인쇄·PPT에 표지가 붙습니다"); };
+$("#f-apply").onclick = () => { applyForm(readForm()); closeForm(); say("이 양식으로 씁니다 — 표지와 머리말·맺음말이 내보내는 문서에 붙습니다"); };
 $("#f-save").onclick = () => {
   const f = readForm();
   if (!f.name) { say("양식 이름을 먼저 적어 주세요"); $("#f-name").focus(); return; }
@@ -3419,9 +3720,8 @@ $("#f-export").onclick = () => {
   download(blob, "매뉴얼 양식 " + forms.length + "개.manualform.json");
   say("양식 " + forms.length + "개를 파일로 내보냈습니다 — 다른 사람에게 주면 그대로 씁니다");
 };
-$("#f-import").onclick = () => $("#forminput").click();
-$("#forminput").onchange = e => {
-  const file = e.target.files[0]; e.target.value = "";
+/* 양식 파일 읽기. 파일 고르기로도, 창에 끌어다 놓아서도 같은 길로 온다. */
+function 양식가져오기(file) {
   if (!file) return;
   const r = new FileReader();
   r.onload = () => {
@@ -3442,6 +3742,11 @@ $("#forminput").onchange = e => {
     } catch (err) { say("이 파일은 양식 파일이 아닙니다"); }
   };
   r.readAsText(file);
+}
+$("#f-import").onclick = () => $("#forminput").click();
+$("#forminput").onchange = e => {
+  const file = e.target.files[0]; e.target.value = "";
+  양식가져오기(file);
 };
 
 /* ── 배선 ── */
@@ -3473,6 +3778,7 @@ $("#pausebtn2").onclick = () => {
   say(state.paused ? "멈췄습니다 — 담기지 않습니다" : "다시 담습니다");
 };
 $("#btn-sec").onclick = () => {
+  snap("섹션 넣기");
   state.steps.push({ sec: true, title: "" });
   render(); save();
   requestAnimationFrame(() => {
@@ -3485,7 +3791,11 @@ $("#btn-sec").onclick = () => {
 $("#btn-save").onclick = saveFile;
 $("#spill-save").onclick = saveFile;
 /* 내보내기 목록: 무엇을 고를지가 어려우므로 언제 쓰는지를 같이 보여 준다 */
-const OUT = { print: () => { if (!live().length) { say("먼저 단계를 만들어 주세요"); return; } window.print(); },
+const OUT = { print: () => {
+    if (!live().length) { say(state.steps.length ? "전부 빼 두었습니다 — 넣을 것을 하나는 남겨 주세요" : "먼저 단계를 만들어 주세요"); return; }
+    if (FIND.q) { $("#find").value = ""; 찾기(""); say("찾기를 풀고 전부 인쇄합니다"); }
+    window.print();
+  },
   peek: 미리보기,
   ppt: exportPPT, docx: exportDOCX, html: exportHTML, imgs: exportImages, md: exportMD };
 function outMenu(open) {
@@ -3503,15 +3813,37 @@ $("#outmenu").onclick = e => {
 };
 document.addEventListener("click", () => { if (!$("#outmenu").hidden) outMenu(false); });
 
+/* 찾기 줄을 열고 닫는다. 열면 바로 칸에 커서가 간다. */
+function 찾기줄(열까) {
+  const bar = $("#findbar");
+  const 연다 = 열까 === undefined ? bar.hidden : !!열까;
+  bar.hidden = !연다;
+  $("#btn-find").setAttribute("aria-expanded", 연다 ? "true" : "false");
+  if (연다) { $("#find").focus(); $("#find").select(); }
+  else if (FIND.q) { $("#find").value = ""; 찾기(""); }
+}
+$("#b-addimg").onclick = () => {
+  IMG.mode = "add";
+  IMG.at = state.steps.length - 1;      // 맨 뒤에 붙인다
+  $("#imginput").click();
+};
+$("#btn-find").onclick = () => 찾기줄();
+$("#findclose").onclick = () => 찾기줄(false);
 $("#find").addEventListener("input", e => 찾기(e.target.value));
 $("#find").addEventListener("keydown", e => {
-  if (e.key === "Escape") { e.target.value = ""; 찾기(""); e.target.blur(); }
+  if (e.key === "Escape") { e.preventDefault(); 찾기줄(false); }
 });
-$("#imginput").onchange = e => { 사진넣기(e.target.files[0]); e.target.value = ""; };
+$("#imginput").onchange = e => {
+  const 목록 = [].slice.call(e.target.files || []);
+  e.target.value = "";
+  if (목록.length > 1 && IMG.mode === "add") 놓인파일들(목록, null);
+  else 사진넣기(목록[0]);
+};
 $("#bulk").onclick = e => {
   const b = e.target.closest("button[data-bulk]");
   if (b) 한꺼번에(b.dataset.bulk);
 };
+$("#tabwarn-close").onclick = () => { $("#tabwarn").classList.remove("on"); 탭경고중 = false; };
 $("#help-close").onclick = () => $("#help").classList.remove("on");
 $("#help").onclick = e => { if (e.target.id === "help") $("#help").classList.remove("on"); };
 $("#btn-open").onclick = () => $("#fileinput").click();
@@ -3524,11 +3856,14 @@ addEventListener("keydown", e => {
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z" && !typing) { e.preventDefault(); undo(); }
   if ((e.ctrlKey || e.metaKey) && ((e.shiftKey && e.key.toLowerCase() === "z") || e.key.toLowerCase() === "y") && !typing) { e.preventDefault(); redo(); }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f" && !typing) {
-    e.preventDefault(); $("#find").focus(); $("#find").select();
+    e.preventDefault();
+    if ($("#findwrap").hidden) { say("찾을 단계가 아직 없습니다"); return; }
+    찾기줄(true);
   }
   if (e.key === "?" && !typing) { e.preventDefault(); $("#help").classList.toggle("on"); }
   if (e.key === "Escape") {
     if ($("#help").classList.contains("on")) $("#help").classList.remove("on");
+    else if (!$("#findbar").hidden) 찾기줄(false);
     else if (PICK.set.size) 고르기해제();
     else if ($("#mark").classList.contains("on")) $("#mark-done").click();
     else if ($("#rew").classList.contains("on")) $("#rew").classList.remove("on");
@@ -3541,9 +3876,10 @@ addEventListener("beforeunload", e => {
   if (state.steps.length && !state.saved) { e.preventDefault(); e.returnValue = ""; }
 });
 paintTitleBtn();
-load();load();
+load();
 loadFull();
 탭알림();
+탭되묻기();
 loadForms();
 paintCover();
 render();

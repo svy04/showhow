@@ -59,8 +59,11 @@ const BEYOND = [
    "Reddit r/msp: 클릭한 자리만 찍혀 지울 것이 산더미"],
   ["화면 밖 프로그램도 무료로",            () => has("getDisplayMedia"),
    "Scribe·Guidde는 데스크톱이 유료"],
-  ["사진이 컴퓨터 밖으로 안 나감",         () => !/fetch\(|XMLHttpRequest|WebSocket/.test(src),
-   "상용은 전부 서버에 올린다"],
+  ["사진이 컴퓨터 밖으로 안 나감",
+   () => !/fetch\(|XMLHttpRequest|WebSocket/.test(src) &&
+         // 글자 읽기 부품은 기본값이 CDN 이다. 우리가 세 경로를 전부 옆 폴더로 덮어썼는지 본다.
+         has('workerPath: "ocr/', 'corePath: "ocr/', 'langPath: "ocr"'),
+   "상용은 전부 서버에 올린다 · 글자 읽기 부품의 세 경로를 전부 옆 폴더로 덮어쓴 것까지 확인한다"],
   ["만든 것 전부를 한 파일로 들고 나감",    () => has("async function 전부저장", "showhow-all"),
    "상용은 계정 안에 있어 통째로 꺼내려면 문의 절차를 거친다"],
   ["예전 판이 이 컴퓨터 안에 남는다",       () => has("const BAK", "async function 백업"),

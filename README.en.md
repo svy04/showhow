@@ -12,8 +12,8 @@
 - **Exports to PDF, PPTX, DOCX, a standalone HTML file, raw images, or Markdown.** The Office files open and edit like any other.
 - **Cuts per audience.** Mark a section as excluded and it disappears from every export.
 - **Screenshots never leave the machine.** No code in this file sends anything anywhere. It works offline (auto-titles are the one exception — see below).
-- **Drafts the step titles.** It reads the text inside the changed region and fills in a title like "다음 누르기" (press Next). Measured on 64 common buttons: **44 correct**, 10 wrong, 10 blank. The reading happens on your machine.
-- **Ships with 445 passing tests.** 296 of them run in a real browser, and 10 run against a real screen-share stream with nothing stubbed.
+- **Drafts the step titles.** It reads the text inside the changed region and fills in a title like "다음 누르기" (press Next). Measured on 16 common button labels drawn at four sizes — 64 runs: **44 correct**, 10 wrong, 10 blank. The reading happens on your machine.
+- **Ships with 498 passing tests.** 349 run in a real browser, 8 reload the page for real, and 10 run against a real screen-share stream with nothing stubbed.
 
 ## Try it in 30 seconds
 
@@ -30,9 +30,11 @@
 
 Most screenshot-based manual tools only take a picture **when you click.**
 
-> "StepCapture records cursor clicks and drags, but does not capture non-click actions, such as text entry or keyboard shortcuts." — Snagit documentation
+> "StepCapture records cursor clicks and drags, but does not capture non-click actions, such as text entry or keyboard shortcuts."
+> — [Snagit documentation](https://www.techsmith.com/learn/tutorials/snagit/create-step-by-step-instructions/) (checked 2026-08-21)
 
-> "Recorded steps don't capture anything that's typed during the recording." — Microsoft Steps Recorder documentation
+> "Recorded steps don't capture anything that's typed during the recording."
+> — [Microsoft Steps Recorder documentation](https://support.microsoft.com/en-us/windows/record-steps-to-reproduce-a-problem-46582c9b-620f-2e36-00c9-04e25d784e47) (checked 2026-08-21)
 
 So steps go missing, and you only notice afterwards. Not because editing was late — because no picture was ever taken.
 
@@ -67,7 +69,7 @@ Turn on **제목 자동 작성** (auto-title) and it reads the text inside the c
 | Korean 40 | 26 | — | — |
 | English 24 | 18 | — | — |
 
-Run `node tests/검사_제목.mjs` to measure it again; the suite fails if the number drops.
+Run `node tests/검사_제목.mjs` to measure it again. The suite fails below **40 correct · 24 Korean · 16 English** — four below the measured 44 · 26 · 18.
 
 Per step: draw boxes, arrows, numbered badges and text labels in five colours and three weights; blur what must be hidden; crop; erase a single mark; merge, split or duplicate; drag the numbered circle to reorder. Ctrl+Z undoes, Ctrl+Shift+Z redoes.
 
@@ -118,6 +120,8 @@ Manuals are kept in a list. Open one, continue it, or duplicate it and edit the 
 
 Screenshots never go into the small storage, so no amount of them can fill it up and block a save.
 
+The exception: where the browser blocks IndexedDB (private mode and similar), the app falls back to the small storage and screenshots do go there. When it fills up, a banner says saving has stopped — export a work file at that point.
+
 If an edit went badly wrong, the earlier versions listed under **매뉴얼 목록** (the manual list) take you back further than undo reaches.
 
 Everything lives inside this one browser. Change machines or clear the browser and it goes with it. **매뉴얼 목록 → 전부 파일 하나로** packs every manual into a single file; **파일에서 전부 가져오기** unpacks it on the other side. Colliding ids are never overwritten — the incoming copy is placed beside the existing one.
@@ -140,8 +144,14 @@ node tests/검사_전체.mjs        # 75 tests, no browser needed
 
 npm i -D playwright             # for the browser tests
 npx playwright install msedge
-node tests/검사_전부.mjs        # all 445
+node tests/검사_전부.mjs        # all 498
 ```
+
+`tests/검사_브라우저_길.js` calls no internal function: it clicks the on-screen buttons, drops files onto the real file inputs, and presses the real keys — so a broken wire in between still fails the suite.
+
+`tests/검사_브라우저_약속.js` checks the promises the UI makes — "the covered area is erased from the original too" is verified pixel by pixel, and "both screenshots are kept" by opening the produced PPTX, DOCX, Markdown and image zip.
+
+`tests/검사_저장.mjs` reloads the page for real: it checks that the master copy is written even while you type without pausing, that steps you deleted stay deleted across a reload, and that a failed save never reports "saved".
 
 `tests/검사_기능표.mjs` checks 34 features found in commercial tools against this source file, so the parity claim is verified by the file rather than by memory. 14 of them are ones the commercial tools were confirmed to charge for; for 13 the price could not be confirmed, and the test says so rather than counting them in our favour.
 
@@ -153,7 +163,13 @@ node tests/검사_전부.mjs        # all 445
 
 Everything is in `index.html`. No build step, so edit it and reload the browser.
 
-One thing comes from outside: text reading (`ocr/`, [Tesseract](https://github.com/naptha/tesseract.js), Apache-2.0). It is vendored into the repository rather than fetched from a CDN.
+Three things come from outside. All of them are vendored into the repository rather than fetched from a CDN.
+
+| What | From | Licence |
+|---|---|---|
+| Screen values (colour, type, spacing, radius) | MYCREAM design system | internal |
+| 38 icons | picked from [Lucide](https://lucide.dev)'s 2,034 | ISC |
+| Text reading (`ocr/`) | [Tesseract](https://github.com/naptha/tesseract.js) | Apache-2.0 |
 
 ## A manual made by this tool
 

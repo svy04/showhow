@@ -60,16 +60,31 @@ const board = "data:text/html;charset=utf-8," + encodeURIComponent(`<!DOCTYPE ht
   const p2 = await c2.newPage();
   await p2.goto(board);
   await p2.evaluate(() => window.__draw(0, "#101214"));
+  // 고를 창이 진짜로 그 이름을 달고 떠 있어야 명령줄 옵션이 그것을 집는다.
+  await p2.bringToFront();
+  await p2.waitForFunction(t => document.title === t, BOARD_TITLE, { timeout: 10000 }).catch(() => {});
+  await p2.waitForTimeout(700);
   await p1.bringToFront();
-  await p1.waitForTimeout(500);
+  await p1.waitForTimeout(700);
 
-  await p1.click("#shoot");
-  // 첫 장면이 올 때까지 기다린다. 안 기다리면 0×0 을 재고 흔들린다 (2026-08-21 실측)
-  await p1.waitForFunction(() => (typeof video !== "undefined" && video && video.videoWidth > 0),
-                           { timeout: 20000 }).catch(() => {});
-  await p1.waitForTimeout(500);
-
-  const on = await p1.evaluate(() => WATCH.on && !!WATCH.timer);
+  // 화면 신호가 첫 장면을 늦게 주면 한 번은 헛돈다(실측). 두 번까지 다시 시도한다.
+  let on = false;
+  for (let 판 = 0; 판 < 3 && !on; 판++) {
+    if (판) {
+      await p2.bringToFront(); await p2.waitForTimeout(800);
+      await p1.bringToFront(); await p1.waitForTimeout(800);
+    }
+    await p1.click("#shoot").catch(() => {});
+    // 화면이 멈춰 있으면 첫 장면이 안 온다(실측). 기다리는 동안 저쪽 화면을 실제로 움직인다.
+    for (let 눈 = 0; 눈 < 40; 눈++) {
+      const w = await p1.evaluate(() => (typeof video !== "undefined" && video ? video.videoWidth : 0));
+      if (w > 0) break;
+      await p2.evaluate(n => window.__draw(n % 3, n % 2 ? "#141a20" : "#101214"), 눈).catch(() => {});
+      await p1.waitForTimeout(500);
+    }
+    await p1.waitForTimeout(500);
+    on = await p1.evaluate(() => WATCH.on && !!WATCH.timer);
+  }
   const kind = await p1.evaluate(() => {
     try { return stream.getVideoTracks()[0].getSettings().displaySurface || "불명"; } catch (e) { return "없음"; }
   });
