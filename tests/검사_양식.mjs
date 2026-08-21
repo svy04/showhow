@@ -131,5 +131,22 @@ inp.onchange({ target: inp });
 await new Promise(r => setTimeout(r, 30));
 ok("엉뚱한 파일은 거부", results[results.length - 1].includes("양식 파일이 아닙니다"), results[results.length - 1]);
 
+// ⑦ 저장소에 든 보기 양식이 실제로 불러와지는가
+{
+  const 보기 = JSON.parse(fs.readFileSync("양식/보기.manualform.json", "utf8"));
+  localStorage.removeItem("manualForms");
+  const inp2 = $("#forminput");
+  inp2.files = [new Blob([JSON.stringify(보기)])];
+  inp2.onchange({ target: inp2 });
+  await new Promise(r => setTimeout(r, 30));
+  const 든것 = JSON.parse(localStorage.getItem("manualForms") || "[]");
+  ok("저장소의 보기 양식이 불러와진다", 든것.length === 3, 든것.map(f => f.name).join(", "));
+  ok("우리끼리 쓰는 말을 막는 칸이 들어 있다",
+     든것.some(f => /이 문서에서 쓰는 말/.test(f.intro || "")),
+     "머리말에 용어 칸 있음");
+  ok("바꿔 쓰라는 안내가 붙어 있다",
+     든것.some(f => /바꿔 쓰세요|풀어 두세요/.test(f.intro || "")));
+}
+
 console.log("\n" + (fail.length ? "실패 " + fail.length + "건: " + fail.join(" / ") : "전부 통과"));
 process.exit(fail.length ? 1 : 0);

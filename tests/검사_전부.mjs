@@ -8,6 +8,7 @@ const SUITES = [
   ["검사_전체.mjs",   "브라우저 없이 도는 뼈대 검사"],
   ["검사_양식.mjs",   "양식 저장·불러오기"],
   ["검사_기능표.mjs", "상용 제품 기능 대조"],
+  ["검사_요청대조.mjs", "합격 기준 두 축 — 요청 원문·우리 회사 실패"],
   ["검사_브라우저.mjs", "진짜 브라우저 — 내보내기·보관함·나쁜 상황·규모"],
   ["검사_촬영.mjs",   "진짜 브라우저 — 자동 촬영 전 과정"],
   ["검사_인쇄.mjs",   "진짜 브라우저 — PDF 출력"],
@@ -22,7 +23,7 @@ for (const [file, what] of SUITES) {
   const t0 = Date.now();
   const r = spawnSync(process.execPath, [path.join(HERE, file)], { encoding: "utf8", maxBuffer: 1 << 26 });
   const out = (r.stdout || "") + (r.stderr || "");
-  const n = (out.match(/^통과/gm) || []).length + (out.match(/^있음|^됨  /gm) || []).length;
+  const n = (out.match(/^통과/gm) || []).length + (out.match(/^있음|^됨  |^됨    /gm) || []).length;
   const f = (out.match(/^실패!|^없음!|^안 됨!/gm) || []).length;
   // 나갈 때 값 2 = 검사용 브라우저가 없어서 못 돌린 것. 실패와 구분한다.
   const skipped = r.status === 2;
