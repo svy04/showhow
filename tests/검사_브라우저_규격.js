@@ -38,22 +38,40 @@
      cs(번호).backgroundColor === "rgba(0, 0, 0, 0)" || cs(번호).backgroundImage !== "none",
      cs(번호).backgroundColor);
 
-  // ── 모서리는 세 값만 ──
-  const 모서리 = new Set();
+  // ── 값은 시스템 토큰에서만 온다 (날값 금지) ──
+  // 회사 디자인 시스템: mycream-dev/product-docs/design/tokens.css
+  const 날값 = { 모서리: [], 간격: [], 색: [] };
+  const 훑기 = rule => {
+    const st = rule.style;
+    if (!st) return;
+    const r = st.borderRadius;
+    if (r && !/var\(--radius|^0|50%|9999px/.test(r)) 날값.모서리.push(r);
+    ["padding", "margin", "gap", "paddingTop", "marginTop"].forEach(k => {
+      const v = st[k];
+      // 0 은 값이 아니다. 1px 이상만 센다.
+      if (v && /[1-9]\d*px/.test(v) && !/var\(--spacing/.test(v)) 날값.간격.push(k + ":" + v);
+    });
+    ["color", "backgroundColor"].forEach(k => {
+      const v = st[k];
+      if (v && /^#|^rgb/.test(v)) 날값.색.push(k + ":" + v);
+    });
+  };
   for (const sheet of document.styleSheets) {
     try {
       for (const r of sheet.cssRules) {
-        const grab = rule => {
-          const v = rule.style && rule.style.borderRadius;
-          if (v) v.split(" ").forEach(x => 모서리.add(x.trim()));
-        };
-        grab(r);
-        if (r.cssRules) for (const rr of r.cssRules) grab(rr);
+        if (r.href || (r.conditionText && /print/.test(r.conditionText))) continue;  // 인쇄는 종이라 따로
+        훑기(r);
+        if (r.cssRules) for (const rr of r.cssRules) 훑기(rr);
       }
     } catch (e) {}
   }
-  모서리.delete("0px"); 모서리.delete("0"); 모서리.delete("50%");
-  ok("모서리 값이 셋 이하", 모서리.size <= 3, [...모서리].join(", ") || "없음");
+  ok("모서리는 시스템 토큰만 쓴다", 날값.모서리.length === 0,
+     날값.모서리.slice(0, 4).join(", ") || "날값 없음");
+  ok("간격은 시스템 토큰만 쓴다", 날값.간격.length === 0,
+     날값.간격.length + "건 " + 날값.간격.slice(0, 8).join(" | "));
+  ok("시스템 토큰을 실제로 쓴다",
+     !!getComputedStyle(document.documentElement).getPropertyValue("--colors-primary-normal").trim(),
+     "브랜드색 " + getComputedStyle(document.documentElement).getPropertyValue("--colors-primary-normal").trim());
 
   // ── 간격이 전부 같지 않다 (규격 §8) ──
   const 간격 = new Set();
