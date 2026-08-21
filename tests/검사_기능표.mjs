@@ -16,6 +16,14 @@ const TABLE = [
   ["클릭·변화 자리 표시",   "Tango",               false, () => has("function changedBox", 'className = "spot"')],
   ["주석(화살표·상자)",     "대개 유료",            false, () => has('m.t === "arrow"', 'm.t === "box"')],
   ["번호 매기기",          "Scribe·Tango",        true,  () => has('m.t === "badge"')],
+  ["단계 글 자동 작성",     "Scribe·Tango",        false, () => has("function ocrFill", "function ocrTitle", "tessedit_pageseg_mode")],
+  ["사진에 글자 넣기",      "Snagit 등(유료)",      false, () => has('m.t === "text"')],
+  ["표시 색·굵기 고르기",   "전부(대개 유료)",       false, () => has("MK.COLORS", "function nextThick")],
+  ["표시 하나만 지우기",    "전부",                 false, () => has("function markAt", 'MK.tool === "erase"')],
+  ["끌어서 순서 바꾸기",    "전부",                 true,  () => has("function moveStep", "function dragHook")],
+  ["단계 복제",            "불명",                 false, () => has('a === "copy"')],
+  ["워드로 내보내기",       "불명",                 false, () => has("function exportDOCX", "word/document.xml")],
+  ["글과 그림으로 내보내기", "불명",                 false, () => has("function exportMD")],
   ["민감정보 가리기",       "Scribe Pro·Tango Pro", false, () => has('m.t === "blur"')],
   ["순서 바꾸기",          "전부",                 true,  () => has('a === "up"', 'a === "down"')],
   ["단계 삭제",            "전부",                 true,  () => has('a === "del"')],
@@ -34,6 +42,8 @@ const TABLE = [
 
 // 상용이 못 하는 것 — 우리만의 것
 const BEYOND = [
+  ["글자 읽기가 컴퓨터 안에서만", () => has('src = "ocr/tesseract.min.js"') && !/https?:\/\/[^"']*tesseract/.test(src),
+   "상용은 서버로 보내 읽는다 — 우리는 옆 폴더에서 읽는다"],
   ["클릭 없이도 담김(타이핑·단축키·로딩)", () => has("changedBox", "WATCH.CALM"),
    "Snagit·Microsoft 공식: 클릭이 아닌 동작은 기록되지 않는다"],
   ["너무 많이 찍히지 않음(멈출 때 한 장)", () => has("WATCH.CALM", "WATCH.BUSY"),
