@@ -1,8 +1,8 @@
-<img src="docs/표지.png" alt="showhow — the manual survives even when you forget to capture" width="100%">
+<img src="docs/표지.png" alt="showhow — Just do your work. The document stays behind." width="100%">
 
 # showhow
 
-**The manual survives even when you forget to capture.** A single browser file that records your screen as you work and exports it as PDF or PowerPoint.
+**Just do your work. The document stays behind.** A single browser file that records your screen as you work and exports it as PDF, PowerPoint or Word.
 
 [한국어](README.md) · [Open it](https://svy04.github.io/showhow/) · [Download the file](https://github.com/svy04/showhow/raw/main/index.html)
 

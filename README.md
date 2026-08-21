@@ -1,8 +1,8 @@
-<img src="docs/표지.png" alt="showhow — 찍는 걸 잊어도 매뉴얼이 남습니다" width="100%">
+<img src="docs/표지.png" alt="showhow — 하던 일만 하세요. 문서는 알아서 남습니다" width="100%">
 
 # showhow
 
-**찍는 걸 잊어도 매뉴얼이 남습니다.** 업무 화면을 자동으로 담아 PDF·PPT로 내보내는, 브라우저 파일 하나짜리 도구입니다.
+**하던 일만 하세요. 문서는 알아서 남습니다.** 업무 화면을 자동으로 담아 PDF·PPT·워드로 내보내는, 브라우저 파일 하나짜리 도구입니다.
 
 [English](README.en.md) · [바로 써보기](https://svy04.github.io/showhow/) · [파일로 내려받기](https://github.com/svy04/showhow/raw/main/index.html)
 
