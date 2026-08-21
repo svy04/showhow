@@ -156,7 +156,9 @@ const board = "data:text/html;charset=utf-8," + encodeURIComponent(`<!DOCTYPE ht
     const 멈췄다 = !r.on || (r.tick - 마지막) > 20;
     ok("고리가 끝없이 돌지 않는다", 멈췄다 && r.steps <= 6,
        r.steps + "장 · " + (r.on ? "마지막 담김 뒤 " + (r.tick - 마지막) + "눈금 조용" : "자동 꺼짐"));
-    if (!r.on) ok("껐다면 왜 껐는지 말해 준다", /자기 자신|다른 화면|빠르게/.test(r.말), r.말.slice(0, 50));
+    // 자동이 꺼지는 이유는 둘이다 — 고리를 끊었거나, 화면 공유가 끝났거나.
+    // 어느 쪽이든 사람에게 이유를 말해야 한다. (고리 메시지 자체는 검사_전체.mjs 에서 정확히 본다)
+    if (!r.on) ok("껐다면 이유를 말해 준다", /자기 자신|다른 화면|빠르게|종료/.test(r.말), r.말.slice(0, 50));
   }
   await browser.close();
 }

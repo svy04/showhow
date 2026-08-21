@@ -86,9 +86,6 @@ if (ready) {
   ok("짐작이라고 표시해 둔다", a.guess);
   ok("화면에도 짐작 표시가 붙는다", await page.evaluate(() => !!document.querySelector(".stitle.guess")));
 
-  const b = await run("Save", false);
-  ok("영어 단추도 읽는다", /save/i.test(b.title), "제목: " + (b.title || "비어 있음"));
-
   const c = await run("", true);
   ok("읽을 글자가 없으면 비워 둔다", !c.title, "제목: " + (c.title || "비어 있음"));
 
@@ -100,6 +97,42 @@ if (ready) {
     return st.title;
   });
   ok("사람이 쓴 제목은 안 덮어쓴다", kept === "내가 쓴 제목", kept);
+
+  // 얼마나 맞히는지 재고, 나빠지면 걸리게 못 박아 둔다.
+  // 흔한 단추 16개 × 크기 4가지 = 64개. 2026-08-21 실측: 맞음 43 · 틀림 11 · 빈칸 10.
+  const WORDS = ["다음", "확인", "저장", "취소", "닫기", "삭제", "등록", "검색", "로그인", "내보내기",
+                 "Save", "Next", "OK", "Cancel", "Sign in", "Export"];
+  const score = await page.evaluate(async words => {
+    const shapes = [[260, 84, 38], [220, 74, 40], [160, 48, 24], [340, 96, 44]];
+    let hit = 0, bad = 0, none = 0, kor = 0, korAll = 0, eng = 0, engAll = 0;
+    for (const w of words) for (const [bw, bh, fs2] of shapes) {
+      const cv = document.createElement("canvas"); cv.width = 1200; cv.height = 750;
+      const g = cv.getContext("2d");
+      g.fillStyle = "#f4f5f7"; g.fillRect(0, 0, 1200, 750);
+      g.fillStyle = "#ffffff"; g.fillRect(60, 60, 1080, 560);
+      const bx = 1100 - bw, by = 600 - bh;
+      g.fillStyle = "#2563eb"; g.fillRect(bx, by, bw, bh);
+      g.fillStyle = "#ffffff"; g.font = "600 " + fs2 + "px 'Malgun Gothic', sans-serif";
+      g.textAlign = "center"; g.textBaseline = "middle";
+      g.fillText(w, bx + bw / 2, by + bh / 2 + 2);
+      const st = { title: "", desc: "", img: cv.toDataURL("image/png"), auto: true,
+                   spot: { x: bx / 1200, y: by / 750, w: bw / 1200, h: bh / 750 } };
+      await ocrFill(st);
+      const got = String(st.title || "").replace(/ 누르기$/, "");
+      const okv = got.toLowerCase() === w.toLowerCase();
+      if (!got) none++; else if (okv) hit++; else bad++;
+      if (/[가-힣]/.test(w)) { korAll++; if (okv) kor++; } else { engAll++; if (okv) eng++; }
+    }
+    return { hit, bad, none, kor, korAll, eng, engAll, all: words.length * shapes.length };
+  }, WORDS);
+
+  ok("단추 글자를 절반 넘게 맞힌다", score.hit / score.all >= 0.5,
+     "맞음 " + score.hit + " · 틀림 " + score.bad + " · 빈칸 " + score.none + " / " + score.all +
+     " (한글 " + score.kor + "/" + score.korAll + ")");
+  ok("틀린 것보다 맞은 것이 세 배 넘는다", score.hit >= score.bad * 3,
+     score.hit + " 대 " + score.bad);
+  ok("한글도 절반 넘게 맞힌다", score.kor / score.korAll >= 0.5, score.kor + "/" + score.korAll);
+  ok("영어도 절반 넘게 맞힌다", score.eng / score.engAll >= 0.5, score.eng + "/" + score.engAll);
 
   await page.evaluate(() => document.querySelector("#titlebtn").click());
   await page.waitForTimeout(200);

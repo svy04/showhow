@@ -1981,8 +1981,9 @@ async function ocrStart() {
     ]);
     // 잘라 낸 조각은 글자 덩어리 하나다 — 지면 분석을 시키면 그림으로 보고 건너뛴다
     // 잘라 낸 조각은 글자 한 줄이다. 지면 분석을 시키면 그림으로 보고 건너뛴다.
-    // 실측(2026-08-21): 3·6·11 은 하나도 못 읽었고, 7 과 13 만 읽었다.
-    try { await w.setParameters({ tessedit_pageseg_mode: "7" }); } catch (e) {}
+    // 실측(2026-08-21, 단추 64개): 방식별 정답 수 —
+    //   3·6·11 → 1~6개 / 7 → 23개 / 13 → 47개. 그래서 13(줄 그대로 읽기)을 쓴다.
+    try { await w.setParameters({ tessedit_pageseg_mode: "13" }); } catch (e) {}
     OCR.worker = w;
     return w;
   })();
@@ -1998,7 +1999,8 @@ function ocrCrop(img, spot) {
       const W = im.naturalWidth, H = im.naturalHeight;
       const x = spot.x * W, y = spot.y * H;
       const w = spot.w * W, h = spot.h * H;
-      const scale = Math.min(4, Math.max(2, 900 / Math.max(1, w)));
+      // 실측: 900px 로 키우면 38개, 1600px 로 키우면 47개를 맞혔다
+      const scale = Math.min(8, Math.max(2, 1600 / Math.max(1, w)));
       const m = 24;                       // 둘레에 흰 여백을 둔다 — 글자가 가장자리에 붙으면 안 읽힌다
       const cv = document.createElement("canvas");
       cv.width = Math.round(w * scale) + m * 2;
@@ -2043,13 +2045,16 @@ function ocrTitle(data, spot) {
       ? data.lines.map(l => ({ t: l.text, c: l.confidence || whole }))
       : String(data.text || "").split(/\r?\n/).map(t => ({ t, c: whole })))
     .map(r => ({ t: String(r.t || "").replace(/\s+/g, " ").trim(), c: r.c }))
-    .filter(r => r.t.length >= 1 && r.t.length <= 24 && r.c >= 62)
+    // 확신도 문턱 실측(2026-08-21, 단추 64개): 문턱 40 → 맞음 47·틀림 15,
+    // 50 → 43·11, 62 → 25·6. 맞음 대 틀림이 가장 나은 50 을 쓴다.
+    // 틀린 제목도 "짐작" 표시가 붙고 사람이 고칠 수 있다.
+    .filter(r => r.t.length >= 1 && r.t.length <= 24 && r.c >= 50)
     .filter(r => /[가-힣A-Za-z0-9]/.test(r.t))
     .sort((a, b) => b.c - a.c || b.t.length - a.t.length);
   if (!rows.length) return "";
   // 단추 테두리가 글자로 읽히는 일이 있다 — 양끝의 막대·괄호 따위를 걷어낸다 (실측: "ㅣ 다음 ㅣ")
   // 글자(l·I 같은 것)는 건드리지 않는다 — Install 의 I 를 지우면 안 된다
-  const junk = "\u3163|\\[\\]{}()<>~`^_\\\\.,:;'" + String.fromCharCode(34);
+  const junk = "\u3163|\\[\\]{}()<>~`^_\\\\.,:;\\-\u2013\u2014\u00b7'" + String.fromCharCode(34);
   const t = rows[0].t
     .replace(new RegExp("^[" + junk + "\\s]+"), "")
     .replace(new RegExp("[" + junk + "\\s]+$"), "")

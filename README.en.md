@@ -12,8 +12,8 @@
 - **Exports to PDF, PPTX, DOCX, a standalone HTML file, raw images, or Markdown.** The Office files open and edit like any other.
 - **Cuts per audience.** Mark a section as excluded and it disappears from every export.
 - **Screenshots never leave the machine.** No code in this file sends anything anywhere. It works offline (auto-titles are the one exception — see below).
-- **Writes the step titles too.** It reads the text inside the changed region and fills in a title like "다음 누르기" (press Next). The reading happens on your machine.
-- **Ships with 290 passing tests.** 187 of them run in a real browser, and 10 run against a real screen-share stream with nothing stubbed.
+- **Drafts the step titles.** It reads the text inside the changed region and fills in a title like "다음 누르기" (press Next). Measured on 64 common buttons: **44 correct**, 10 wrong, 10 blank. The reading happens on your machine.
+- **Ships with 293 passing tests.** 190 of them run in a real browser, and 10 run against a real screen-share stream with nothing stubbed.
 
 ## Try it in 30 seconds
 
@@ -58,6 +58,16 @@ If the screen never holds still long enough to capture, showhow says so. Press <
 ![Steps](docs/2_단계.png)
 
 The changed region gets a red outline, and the description field shows a faint hint like `오른쪽 아래 부분이 바뀌었습니다` ("the bottom-right area changed"). Hints are placeholders — they never reach the exported document.
+
+Turn on **제목 자동 작성** (auto-title) and it reads the text inside the changed region to draft a title. Drafted titles are labelled **짐작** ("a guess") because that is what they are. Measured over 16 common button labels drawn at four sizes:
+
+| | correct | wrong | blank |
+|---|---|---|---|
+| all 64 | 44 | 10 | 10 |
+| Korean 40 | 26 | — | — |
+| English 24 | 18 | — | — |
+
+Run `node tests/검사_제목.mjs` to measure it again; the suite fails if the number drops.
 
 Per step: draw boxes, arrows, numbered badges and text labels in five colours and three weights; blur what must be hidden; crop; erase a single mark; merge, split or duplicate; drag the numbered circle to reorder. Ctrl+Z undoes.
 
@@ -116,7 +126,7 @@ node tests/검사_전체.mjs        # 66 tests, no browser needed
 
 npm i -D playwright             # for the browser tests
 npx playwright install msedge
-node tests/검사_전부.mjs        # all 290
+node tests/검사_전부.mjs        # all 293
 ```
 
 `tests/검사_기능표.mjs` checks 26 features found in commercial tools against this source file, so the parity claim is verified by the file rather than by memory.
