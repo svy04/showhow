@@ -52,7 +52,7 @@ globalThis.btoa = s=>Buffer.from(s,"binary").toString("base64");
 const say = m => results.push(m);
 const HOOK = `
 return { state, shoot, act, render, save, saveFile, exportPPT, exportImages, applyForm, zipMake, live, exportHTML, cutText, loopWatch, busyScreen,
-  WATCH, watchTick, watchStart, watchStop, REWIND, rewindPush, openRewind, changedBox, UNDO, undo, snap, SPOTWORD, renderSide,
+  WATCH, watchTick, watchStart, watchStop, REWIND, rewindPush, openRewind, changedBox, UNDO, undo, redo, snap, paintSaved, 글만, SPOTWORD, renderSide,
   _fakeCapture() { stream = { getVideoTracks: () => [{ addEventListener() {} }] };
                    video = { videoWidth: 1200, videoHeight: 750 }; } };`;
 const run = new Function("$","say", code.replace(/const \$ = [^;]+;/,"").replace(/function say\([^}]+}/,"") + HOOK);
@@ -257,6 +257,24 @@ ok("영상이 끝나면 한 장으로 정리된다", S.steps.length === 1, S.ste
 ok("계속 움직이는 동안 사람에게 알린다", results.some(m => /쉬지 않고 움직/.test(m)), "알림 " + (results.some(m => /쉬지 않고 움직/.test(m)) ? "있음" : "없음"));
 ok("영상이었다는 것을 시계로 기억한다", 영상직후 > 0, "영상이 끝난 순간 앞으로 " + Math.round(영상직후 / 100) / 10 + "초 더 영상으로 봄");
 
+/* ── 다시 실행 ── */
+S.steps.length = 0;
+["하나", "둘", "셋"].forEach(t => S.steps.push({ title: t, desc: "", img: "x" }));
+api.act("del", 1);
+ok("지우면 준다 (다시 실행 시험)", S.steps.map(x => x.title).join(",") === "하나,셋", S.steps.map(x => x.title).join(","));
+api.undo();
+ok("되돌리면 살아난다", S.steps.map(x => x.title).join(",") === "하나,둘,셋");
+api.redo();
+ok("다시 실행하면 또 지워진다", S.steps.map(x => x.title).join(",") === "하나,셋", S.steps.map(x => x.title).join(","));
+api.undo(); api.undo();
+ok("더 되돌릴 게 없어도 안 죽는다 (다시 실행 뒤)", true, results[results.length - 1]);
+api.redo();
+ok("다시 실행도 여러 번 된다", S.steps.length >= 2, S.steps.length + "단계");
+api.act("del", 0);
+api.redo();
+ok("새로 손대면 다시 실행 거리가 사라진다",
+   /다시 실행할 것이 없습니다/.test(results[results.length - 1] || ""), results[results.length - 1]);
+
 console.log("\n" + (fail.length ? "실패 " + fail.length + "건: " + fail.join(" / ") : "전부 통과 (자동 촬영 포함)"));
 /* ── 되돌리기: 안 찍힌 것을 꺼낼 수 있는가 ── */
 S.steps.length = 0;
@@ -362,7 +380,17 @@ ok("큰 변화는 영역이라 부른다", api.SPOTWORD({x:0.1,y:0.1,w:0.5,h:0.5
   let died = false;
   try { api.save(); } catch (e) { died = true; }
   ok("저장소가 넘쳐도 안 죽는다", !died, overflow ? "넘침 발생함" : "안 넘침");
-  ok("넘치면 사람에게 알린다", S.spill === true, S.spill ? "알림 켜짐" : "조용히 넘어감");
+  // 정본은 큰 칸(IndexedDB)이고 작은 칸에는 글만 남긴다 —
+  // 사진 6MB 를 넣어도 작은 칸은 안 넘친다.
+  ok("사진이 커도 작은 칸이 안 넘친다", !overflow && S.spill !== true,
+     overflow ? "넘쳤다" : "작은 칸에 글만 들어감");
+  {
+    const raw = globalThis.localStorage.getItem("manualDraft") || "";
+    ok("작은 칸에 사진은 안 들어간다", !raw.includes("data:image"),
+       Math.round(raw.length / 1024) + "KB");
+    ok("작은 칸에 글은 들어간다", raw.includes("단계3"), "제목 남음");
+    ok("어느 매뉴얼인지도 남는다", !!globalThis.localStorage.getItem("manualCurrent"));
+  }
   // 파일로 저장하면 알림이 내려간다
   S.spill = true; api.saveFile();
   ok("파일로 저장하면 알림이 내려간다", S.spill === false);
