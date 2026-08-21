@@ -139,6 +139,20 @@ Everything is in `index.html`. No build step, so edit it and reload the browser.
 
 One thing comes from outside: text reading (`ocr/`, [Tesseract](https://github.com/naptha/tesseract.js), Apache-2.0). It is vendored into the repository rather than fetched from a CDN.
 
+## A manual made by this tool
+
+Rather than describing it: **[showhow 쓰는 법](https://svy04.github.io/showhow/docs/showhow-%EC%93%B0%EB%8A%94%EB%B2%95.html)** (How to use showhow). That document was not written by hand — showhow captured it.
+
+Two windows were opened, and one captured the other through a real screen share. Nothing was stubbed. Only the titles and descriptions were typed by a human.
+
+![A document made by the tool](docs/8_만든문서.png)
+
+Regenerate it yourself:
+
+```bash
+node tests/만들기_사용법.mjs     # two windows appear briefly
+```
+
 ## Why this exists
 
 On 17 August 2026 someone described what they wanted: capture screens, write a title and body, mark things up, organise into projects and sections, export to PDF and PPT, keep the original images separately, and save per-company templates. Free or open source, ideally.
