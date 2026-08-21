@@ -37,15 +37,13 @@ await page.addInitScript(() => {
     g.fillStyle = color;
     g.fillRect(60 + 3 * 300, 70 + 2 * 190, 260, 160);
   };
-  // 진짜 영상처럼 매 프레임 바뀌는 화면
+  // 진짜 영상처럼 쉼 없이 바뀌는 화면.
+  // 화면 새로고침(rAF)에 묶으면 컴퓨터가 바쁠 때 끊겨서 "멈춘 화면"처럼 보인다 —
+  // 검사가 그 사정에 흔들리지 않도록 시계로 돌린다 (40ms = 초당 25번, 눈금보다 3배 빠르다).
   window.__video = ms => new Promise(done => {
-    const t0 = performance.now();
     let i = 0;
-    const step = () => {
-      window.__draw(10, "hsl(" + ((i += 7) % 360) + ",60%,55%)");
-      if (performance.now() - t0 < ms) requestAnimationFrame(step); else done();
-    };
-    step();
+    const id = setInterval(() => { window.__draw(10, "hsl(" + ((i += 7) % 360) + ",60%,55%)"); }, 40);
+    setTimeout(() => { clearInterval(id); done(); }, ms);
   });
   const stream = cv.captureStream(12);
   navigator.mediaDevices.getDisplayMedia = async () => stream;

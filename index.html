@@ -476,6 +476,9 @@ async function startCapture() {
   try {
     stream = await navigator.mediaDevices.getDisplayMedia({
       video: { frameRate: 5 }, audio: false,
+      // 이 창을 고르면 자기 자신을 찍는 고리가 된다. 목록에서 빼 달라고 한다.
+      // 모르는 브라우저는 이 값을 그냥 무시한다 — 넣어서 손해 볼 것이 없다.
+      selfBrowserSurface: "exclude",
     });
   } catch (e) {
     const kind = e && e.name;
@@ -495,17 +498,22 @@ async function startCapture() {
     say("화면을 켜지 못했습니다 — 브라우저를 새로 고친 뒤 다시 해 보세요");
     return false;
   }
-  stream.getVideoTracks()[0].addEventListener("ended", () => {
-    stream = null; video = null;
-    watchStop();
-    $("#autowrap").style.display = "none";
-    $("#side").classList.remove("on");
-    document.body.classList.remove("sideon");
-    $("#shoot").textContent = "화면 찍기 시작";
-    $("#shootsub").innerHTML = "화면 공유가 끝났습니다. 다시 시작할 수 있습니다.";
-    say("화면 공유 종료됨");
-  });
+  stream.getVideoTracks()[0].addEventListener("ended", shareEnded);
   return true;
+}
+
+/* 화면 공유가 끝났다. 사람이 "공유 중지"를 눌렀거나, 신호가 죽었거나. */
+function shareEnded() {
+  if (!stream && !video) return;
+  try { stream && stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+  stream = null; video = null;
+  watchStop();
+  $("#autowrap").style.display = "none";
+  $("#side").classList.remove("on");
+  document.body.classList.remove("sideon");
+  $("#shoot").textContent = "화면 찍기 시작";
+  $("#shootsub").innerHTML = "화면 공유가 끝났습니다. 다시 시작할 수 있습니다.";
+  say("화면 공유 종료됨");
 }
 
 /* ── 자동 촬영: 사람이 안 눌러도 화면이 바뀌면 담긴다 ──────────────
@@ -516,8 +524,25 @@ const WATCH = {
   on: false, w: 240, h: 150, cv: null, g: null, last: null,
   armed: true, pending: false, timer: null,
   TOL: 12, FIRE: 0.020, CALM: 0.004, BUSY: 26,   // BUSY: 계속 바뀌는 화면이면 잠시 쉰다
-  CALMN: 2,      // 멈춤을 인정하는 최소 횟수. 오래 움직였으면 이보다 더 오래 잠잠해야 한다
-  CALMX: 8,      // 아무리 오래 움직였어도 이만큼만 기다린다
+  // 실측(2026-08-21, 진짜 화면 공유): 자기 자신을 찍는 고리는 한 장 담긴 뒤 곧바로
+  // 다음 장이 담긴다 — 멈춤을 확인하는 시간(700밀리초)에 한두 눈금을 더한 만큼이다.
+  // 사람이 하는 일은 그보다 뜸하다: 다음 동작을 하고, 그 화면이 또 멈춰야 한다.
+  FASTMS: 1200, FASTRUN: 3,   // 1.2초 안에 세 번 잇따라 담기면 사람 손이 아니다
+  shots: [], tick: 0, lastShot: 0, fast: 0,
+  // 화면 공유는 초당 다섯 장을 보내는데 우리는 초당 일곱 번 본다. 그래서 같은 장면이
+  // 두세 눈금 이어지는 일이 늘 생긴다(실측: 가장 길게 두 눈금).
+  // 눈금으로 세면 그 겹침이 "멈췄다"로 읽히므로, 멈춤은 시계로 잰다.
+  CALMN: 2,        // 적어도 두 번은 눈으로 확인한다
+  CALMMS: 700,     // 그리고 700밀리초 동안 그대로여야 멈춘 것이다 (겹침의 2.5배)
+  CALMXMS: 1500,   // 오래 움직이던 화면이면 이만큼 기다린다
+  calmAt: 0,
+  now: () => Date.now(),   // 시계. 검사에서 갈아 끼울 수 있게 여기에 둔다
+  STUCK: 3, stuck: 0,   // 세 번을 내리 기다리게 되면(약 11초) 사람에게 알린다
+  // "쉬지 않는 화면"은 눈금이 아니라 시계로 기억한다.
+  // 컴퓨터가 바쁘면 화면 신호가 잠깐 끊기는데, 그 끊김을 눈금으로 세면
+  // "화면이 멈췄다"로 읽혀 영상 도는 중에 사진이 쌓인다 (2026-08-21 실측).
+  MOVEMAX: 10, VIDEOHOLD: 3000,   // 한 번에 열 눈금 넘게 움직였으면 3초 동안 영상으로 본다
+  moved: 0, videoUntil: 0,
   calm: 0, wide: false,
   prev: null, spot: null,
   busy: 0,
@@ -528,6 +553,8 @@ function watchStart() {
   WATCH.cv.width = WATCH.w; WATCH.cv.height = WATCH.h;
   WATCH.g = WATCH.cv.getContext("2d", { willReadFrequently: true });
   WATCH.last = null; WATCH.armed = true; WATCH.pending = false; WATCH.busy = 0;
+  WATCH.shots = []; WATCH.tick = 0; WATCH.lastShot = 0; WATCH.fast = 0; WATCH.stuck = 0;
+  WATCH.moved = 0; WATCH.videoUntil = 0; WATCH.calmAt = 0;
   WATCH.on = true;
   WATCH.timer = setInterval(watchTick, 140);
   $("#autolabel").textContent = "자동 촬영 켜짐";
@@ -559,6 +586,34 @@ function rewindPush() {
 /* 바뀐 자리 찾기: 어디가 달라졌는지 네모로 잡아 준다.
    Tango는 "클릭한 곳"을 표시한다. 우리는 클릭을 모르므로 "달라진 곳"을 쓴다 —
    타이핑·단축키로 바뀐 자리도 잡히므로 더 넓다. */
+/* 스스로 찍는 고리를 끊는다.
+   고른 화면 안에 이 창이 보이면, 한 장 담길 때마다 목록이 길어져 화면이 또 바뀐다.
+   그러면 끝없이 담긴다. 사람 손으로는 4초에 다섯 번을 따로 하지 않으므로,
+   그렇게 빠르면 고리로 보고 멈춘 뒤 왜 멈췄는지 말한다. */
+function loopWatch() {
+  WATCH.shots.push(WATCH.tick);
+  if (WATCH.shots.length > 20) WATCH.shots.shift();
+  const gap = WATCH.now() - WATCH.lastShot;
+  WATCH.fast = (WATCH.lastShot && gap <= WATCH.FASTMS) ? WATCH.fast + 1 : 0;
+  WATCH.lastShot = WATCH.now();
+  if (WATCH.fast < WATCH.FASTRUN) return;
+
+  watchStop();
+  WATCH.fast = 0;
+  const why = "너무 빠르게 잇따라 담겨서 자동 촬영을 껐습니다. " +
+              "고른 화면에 이 창이 보이면 자기 자신이 찍히는 고리가 됩니다.";
+  say(why + " 다른 화면을 고르거나, 그대로 괜찮으면 자동 촬영을 다시 켜세요.");
+  $("#shootsub").innerHTML = "<b>" + why + "</b> 다른 화면을 고르려면 위 단추로 다시 시작하고, " +
+                             "그대로 괜찮으면 <b>자동 촬영</b>을 다시 켜세요.";
+}
+
+/* 쉬지 않는 화면인가 — 영상·스크롤·애니메이션처럼 계속 움직이는 중인가.
+   화면 공유는 같은 장면을 다시 보내기도 해서, 잠깐 멈춘 것처럼 보이는 눈금이 섞인다.
+   그 한두 눈금에 속지 않으려고 최근 스무 눈금을 통째로 본다. */
+function busyScreen() {
+  return WATCH.now() < WATCH.videoUntil;
+}
+
 /* 다음 변화를 기다리는 자리로 되돌린다 */
 function watchArm() {
   WATCH.armed = true; WATCH.pending = false; WATCH.busy = 0; WATCH.calm = 0;
@@ -597,6 +652,10 @@ function changedBox(prev, cur, w, h, tol) {
 
 function watchTick() {
   if (!video || !video.videoWidth || state.paused) return;
+  // 화면 신호가 죽었는데 "끝났다"는 알림이 안 오는 경우가 있다(실측). 직접 본다.
+  const track = stream && stream.getVideoTracks()[0];
+  if (!track || track.readyState === "ended") { shareEnded(); return; }
+  WATCH.tick++;
   rewindPush();
   WATCH.g.drawImage(video, 0, 0, WATCH.w, WATCH.h);
   const cur = WATCH.g.getImageData(0, 0, WATCH.w, WATCH.h).data;
@@ -610,8 +669,9 @@ function watchTick() {
   const d = n / gray.length;
   WATCH.last = gray;
 
+
   if (WATCH.armed && d > WATCH.FIRE) {          // 바뀌기 시작했다
-    WATCH.armed = false; WATCH.pending = true; WATCH.busy = 0; WATCH.calm = 0;
+    WATCH.armed = false; WATCH.pending = true; WATCH.busy = 0; WATCH.calm = 0; WATCH.calmAt = 0; WATCH.moved = 1;
     WATCH.wide = false;
     WATCH.spot = changedBox(WATCH.prev || gray, gray, WATCH.w, WATCH.h, WATCH.TOL);
     if (!WATCH.spot) WATCH.wide = true;
@@ -619,12 +679,20 @@ function watchTick() {
   }
   if (!WATCH.armed) {
     WATCH.busy++;
-    if (WATCH.busy > WATCH.BUSY) {              // 영상처럼 계속 바뀌면 이번 건 버린다
-      watchArm();
+    if (WATCH.busy > WATCH.BUSY) {
+      // 영상처럼 오래 움직인다. 버리지 않고 기다린다 —
+      // 언젠가 진짜로 멈추면 그때 한 장으로 정리한다.
+      WATCH.busy = 0; WATCH.calm = 0;
+      WATCH.stuck++;
+      if (WATCH.stuck === WATCH.STUCK) {
+        say("화면이 쉬지 않고 움직여서 자동으로 못 담고 있습니다 — Space 로 직접 찍을 수 있습니다");
+      }
       return;
     }
     if (d >= WATCH.CALM) {                      // 아직 바뀌는 중 — 바뀐 자리를 넓혀 둔다
-      WATCH.calm = 0;
+      WATCH.calm = 0; WATCH.calmAt = 0;
+      WATCH.moved++;
+      if (WATCH.moved > WATCH.MOVEMAX) WATCH.videoUntil = WATCH.now() + WATCH.VIDEOHOLD;
       spotWiden(changedBox(WATCH.prev || gray, gray, WATCH.w, WATCH.h, WATCH.TOL));
       return;
     }
@@ -632,9 +700,12 @@ function watchTick() {
     // 화면 공유는 같은 장면을 다시 보내기도 하고, 영상 한가운데에도 안 바뀌는 순간이 있다.
     // 그래서 오래 움직였을수록 더 오래 잠잠해야 "끝났다"고 본다.
     WATCH.calm++;
-    const need = Math.min(WATCH.CALMX, Math.max(WATCH.CALMN, Math.ceil(WATCH.busy / 4)));
-    if (WATCH.calm < need) return;
-    if (WATCH.pending) addShot(true);
+    if (!WATCH.calmAt) WATCH.calmAt = WATCH.now();
+    if (WATCH.calm < WATCH.CALMN) return;
+    const needMs = busyScreen() ? WATCH.CALMXMS : WATCH.CALMMS;
+    if (WATCH.now() - WATCH.calmAt < needMs) return;
+    if (WATCH.pending) { addShot(true); loopWatch(); }
+    WATCH.stuck = 0;
     watchArm();
   }
 }
