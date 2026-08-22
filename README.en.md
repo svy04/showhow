@@ -1,5 +1,12 @@
 <img src="docs/표지.png" alt="showhow — Just do your work. The document stays behind." width="100%">
 
+<p align="center">
+  <a href="https://github.com/svy04/showhow/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-b25683" alt="License GPL-3.0"></a>
+  <a href="https://github.com/svy04/showhow/stargazers"><img src="https://img.shields.io/github/stars/svy04/showhow?color=b25683&label=%E2%98%85" alt="Stars"></a>
+  <img src="https://img.shields.io/badge/HTML-1%20file-b25683" alt="One HTML file">
+  <img src="https://img.shields.io/badge/install-none-6b6470" alt="No install">
+</p>
+
 # showhow
 
 **Just do your work. The document stays behind.** A single browser file that records your screen as you work and exports it as PDF, PowerPoint or Word.
@@ -193,4 +200,4 @@ One sentence set the direction: *"when I go back to edit it later, sometimes thi
 
 ## License
 
-MIT.
+GPL-3.0-or-later.
