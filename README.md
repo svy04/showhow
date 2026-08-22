@@ -1,5 +1,12 @@
 <img src="docs/표지.png" alt="showhow — 하던 일만 하세요. 문서는 알아서 남습니다" width="100%">
 
+<p align="center">
+  <a href="https://github.com/svy04/showhow/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-b25683" alt="라이선스 GPL-3.0"></a>
+  <a href="https://github.com/svy04/showhow/stargazers"><img src="https://img.shields.io/github/stars/svy04/showhow?color=b25683&label=%E2%98%85" alt="스타"></a>
+  <img src="https://img.shields.io/badge/HTML-1%20file-b25683" alt="파일 하나">
+  <img src="https://img.shields.io/badge/install-none-6b6470" alt="설치 없음">
+</p>
+
 # showhow
 
 **하던 일만 하세요. 문서는 알아서 남습니다.** 업무 화면을 자동으로 담아 PDF·PPT·워드로 내보내는, 브라우저 파일 하나짜리 도구입니다.
@@ -263,4 +270,4 @@ node tests/검사_요청대조.mjs
 
 ## 라이선스
 
-MIT. 마음대로 쓰고 고치고 팔아도 됩니다.
+GPL-3.0-or-later. 마음대로 쓰고 고칠 수 있고, 고친 것을 배포할 때는 같은 조건으로 소스를 함께 열어야 합니다.

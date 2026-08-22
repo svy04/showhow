@@ -4,7 +4,7 @@
   "description": "찍는 걸 잊어도 매뉴얼이 남습니다 — 화면 변화로 자동 촬영해 PDF·PPT로 내보내는 브라우저 파일 하나",
   "type": "module",
   "private": false,
-  "license": "MIT",
+  "license": "GPL-3.0-or-later",
   "scripts": {
     "test": "node tests/검사_전부.mjs",
     "test:quick": "node tests/검사_전체.mjs"
