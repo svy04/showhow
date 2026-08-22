@@ -25,7 +25,9 @@
   ok("행간 1.5 (1.6 이상 금지)",
      Math.abs(px(cs(설명).lineHeight) / px(cs(설명).fontSize) - 1.5) < 0.02,
      (px(cs(설명).lineHeight) / px(cs(설명).fontSize)).toFixed(2));
-  ok("글 폭 680px (17px × 40자)", px(cs($("#steps")).width) === 680, cs($("#steps")).width);
+  // 사진은 읽는 폭 밖으로 나간다. 680px 은 «글줄» 의 규칙이므로 글에서 잰다.
+  ok("글줄 폭 680px (17px × 40자)", px(cs($(".sdesc")).width) === 680, cs($(".sdesc")).width);
+  ok("제목 줄도 같은 폭에 묶인다", px(cs($(".stitle")).width) === 680, cs($(".stitle")).width);
   ok("좌측 정렬", cs(설명).textAlign !== "justify", cs(설명).textAlign);
   ok("한국어 어절 보존", cs(document.body).wordBreak === "keep-all", cs(document.body).wordBreak);
 
