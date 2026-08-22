@@ -560,7 +560,7 @@
   body.working:not(.capturing) #shootwrap { display: none; }
   /* 찍는 중에는 딸린 단추가 넷이라 위 줄에 다 못 넣는다. 얇은 한 줄로 눕힌다. */
   body.capturing #shootwrap {
-    max-width: var(--read); margin: 0 auto var(--spacing-8);   /* 본문과 같은 축에 선다 */
+    max-width: 1080px; margin: 0 auto var(--spacing-8);   /* 본문 칸과 같은 축에 선다 */
     padding: var(--spacing-4) 0;
     display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;
     text-align: left; border-bottom: 1px solid var(--colors-line-normal);
@@ -722,7 +722,38 @@
   }
 
   /* ── 단계 목록 ── */
-  #steps { max-width: var(--read); margin: 0 auto; }
+  /* 글은 읽는 폭(680px)에 묶고, 사진은 그 밖으로 넓게 나간다.
+     상자를 씌우지 않는다 — 위계는 크기·간격·명도로 만든다(규격 §1·§9). */
+  #steps { max-width: 1080px; margin: 0 auto; }
+  #steps .step, #steps .sec { background: none; border: none; }
+  #steps .step { position: relative; padding: 0; margin: 0 0 var(--spacing-12) 0; }
+  #steps .step .body { padding-left: 0; }
+  #steps .stitle, #steps .sdesc { max-width: var(--read); }
+  #steps .stitle {
+    font-size: var(--typography-3-size); font-weight: 650; line-height: 1.35;
+    margin: 0 0 var(--spacing-1) 0;
+  }
+  #steps .sdesc {
+    font-size: var(--typography-5-size); line-height: 1.5;
+    color: var(--colors-label-neutral); margin: 0 0 var(--spacing-5) 0;
+  }
+  #steps .num {
+    position: absolute; left: -44px; top: 4px; width: auto; height: auto;
+    background: none; border: none;
+    font: 400 var(--typography-6-size)/1.9 ui-monospace, "Cascadia Mono", monospace;
+    color: var(--colors-label-assistive);
+  }
+  #steps .shot { margin: 0; border: none; background: none; }
+  #steps .shot img { width: 100%; max-width: 1024px; display: block; border: none; }
+  #steps .sec { margin: var(--spacing-16) 0 var(--spacing-6) 0; padding: 0; }
+  #steps .sectitle {
+    font-size: var(--typography-6-size); letter-spacing: .1em; font-weight: 700;
+    color: var(--colors-label-brand);
+  }
+  /* 손질 단추는 그 칸에 손이 갈 때만 나온다. 늘 떠 있으면 글보다 단추가 많아진다. */
+  #steps .srow { opacity: 0; transition: opacity .15s; margin-top: var(--spacing-3); }
+  #steps .step:hover .srow, #steps .step:focus-within .srow { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { #steps .srow { transition: none; } }
   .step { display: flex; gap: var(--spacing-4); padding: var(--spacing-5) 0; }
   .num { cursor: grab; user-select: none; }
   .num:active { cursor: grabbing; }
@@ -899,19 +930,30 @@
   /* ── 옆 목록: 찍히는 게 바로 보인다 ── */
   /* 담기는 대로 쌓이는 열. 판때기를 깔면 그 자체가 상자가 된다 —
      본문이 이미 오른쪽으로 물러나 있어 겹치지 않는다. */
+  /* 차례는 왼쪽에 선다. 위 줄 아래에서 시작해 위 줄과 자리를 다투지 않는다. */
   #side {
-    position: fixed; right: 0; top: 0; bottom: 0; width: 190px; display: none;
-    padding: var(--spacing-5) var(--spacing-4); overflow: auto; z-index: 20;
-    background: linear-gradient(to right, rgba(15,17,19,0), var(--colors-adaptive-background-section) 24px);
+    position: fixed; left: 0; top: 57px; bottom: 0; width: 220px; display: none;
+    padding: var(--spacing-6) var(--spacing-4) var(--spacing-8); overflow: auto; z-index: 20;
+    border-right: 1px solid var(--colors-line-normal);
   }
   #side.on { display: block; }
-  #side .h { color: var(--colors-label-assistive); font-size: var(--typography-caption-1-size); letter-spacing: .06em; margin-bottom: var(--spacing-4); }
-  .sit { display: flex; gap: var(--spacing-2); align-items: center; padding: var(--spacing-1) 0; cursor: pointer; }
+  #side .h {
+    color: var(--colors-label-assistive); font-size: var(--typography-caption-1-size);
+    letter-spacing: .06em; margin-bottom: var(--spacing-5);
+  }
+  /* 지금 보고 있는 자리. 색 덩어리 대신 왼쪽 띠 하나로. */
+  .sit.here .t { color: var(--colors-label-normal); }
+  .sit.here { box-shadow: inset 2px 0 0 var(--colors-primary-normal); }
+  .sit.sec-row { margin-top: var(--spacing-5); }
+  .sit.sec-row .t { color: var(--colors-label-brand); font-weight: 600; }
+  .sit:hover .t { color: var(--colors-label-normal); }
+  .sit { display: flex; gap: var(--spacing-3); align-items: center; cursor: pointer;
+    padding: var(--spacing-1) var(--spacing-2) var(--spacing-1) var(--spacing-3); border-radius: var(--radius-xs); }
   .sit img { width: 62px; height: 40px; object-fit: cover; object-position: top; border-radius: var(--radius-xs); background: var(--colors-adaptive-background-section); }
   .sit .t { font-size: var(--typography-caption-1-size); color: var(--colors-label-neutral); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sit.fresh img { box-shadow: 0 0 0 2px var(--colors-primary-normal); }
   .sit .secmark { font-size: var(--typography-caption-1-size); color: var(--colors-primary-normal); font-weight: 600; }
-  body.sideon #top, body.sideon #stage, body.sideon #bottom { padding-right: 206px; }
+  body.sideon #stage, body.sideon #bottom { padding-left: 236px; }
 
   #spill {
     display: none; position: fixed; left: 50%; bottom: 74px; transform: translateX(-50%);
@@ -1003,17 +1045,23 @@
 
   /* ── 인쇄: 이때만 종이 문서가 된다 ── */
   /* 화면을 반으로 나눠 쓰면 900px 아래로 내려간다. 그때도 글은 읽혀야 한다. */
-  @media (max-width: 1100px) {
-    #side { width: 148px; padding: var(--spacing-4) var(--spacing-3); }
-    body.sideon #top, body.sideon #stage, body.sideon #bottom { padding-right: 160px; }
-    .sit img { width: 48px; height: 32px; }
+  @media (max-width: 1240px) {
+    #side { width: 170px; padding: var(--spacing-5) var(--spacing-3) var(--spacing-8); }
+    body.sideon #stage, body.sideon #bottom { padding-left: 186px; }
+    .sit img { width: 44px; height: 30px; }
+    #steps { max-width: none; }
+  }
+  @media (max-width: 1000px) {
+    #side { display: none !important; }          /* 두 칸이 무너지기 전에 한 칸으로 */
+    body.sideon #stage, body.sideon #bottom { padding-left: 0; }
+    #steps { max-width: var(--read); }
+    #steps .num { position: static; margin-bottom: var(--spacing-1); }
   }
   @media (max-width: 880px) {
     #top { padding: var(--spacing-4) var(--spacing-5) var(--spacing-3); flex-wrap: wrap; }
     #stage { padding: 0 var(--spacing-5) var(--spacing-8); }
     #steps, #empty, .sec { max-width: min(var(--read), 100%); }
-    #side { display: none !important; }          /* 좁으면 옆 목록 대신 탭 제목이 알린다 */
-    body.sideon #top, body.sideon #stage, body.sideon #bottom { padding-right: var(--spacing-5); }
+    body.sideon #stage, body.sideon #bottom { padding-left: 0; }
     #shoot { height: 48px; padding: 0 var(--spacing-4); font: var(--typography-5-semibold); }   /* 시스템 .btn-lg */
     #outmenu { width: min(300px, calc(100vw - 32px)); }
   }
@@ -1026,6 +1074,8 @@
   @media print {
     body { background: #fff; color: #111; display: block; }
     #top, #shootwrap, #bottom, .srow, #empty { display: none !important; }
+    #side { display: none !important; }   /* 차례는 길잡이다. 종이에는 안 나간다 */
+    body.sideon #stage, body.sideon #bottom { padding-left: 0 !important; }
     .step.hidden, .sec.hidden { display: none !important; }   /* 이번엔 뺀 섹션은 인쇄에도 안 나온다 */
     .sec button { display: none !important; }
     .sec { margin: 26px 0 6px; break-after: avoid; }
@@ -1144,7 +1194,7 @@
   <span>이 화면은 컴퓨터 밖으로 나가지 않습니다</span>
 </div>
 
-<div id="side"><div class="h">담기는 대로</div><div id="sidelist"></div></div>
+<div id="side"><div class="h" id="sidehead">차례</div><div id="sidelist"></div></div>
 
 <div id="rew">
   <div id="rewtop">
@@ -1346,8 +1396,7 @@ function shareEnded() {
   stream = null; video = null;
   watchStop();
   $("#autowrap").style.display = "none";
-  $("#side").classList.remove("on");
-  document.body.classList.remove("sideon");
+  renderSide();                      // 머리말이 «담기는 대로» 에서 «차례» 로 돌아온다
   document.body.classList.remove("capturing");
   $("#shoot").textContent = "화면 찍기 시작";
   $("#shoot-top").textContent = "화면 찍기 시작";
@@ -1567,8 +1616,7 @@ async function shoot() {
     $("#shoot").textContent = "지금 찍기";
     $("#shootsub").innerHTML = '이제 <b>그냥 하던 일을 하세요.</b> 화면이 바뀔 때마다 알아서 담깁니다. 원할 때 <kbd>Space</kbd> 로 직접 찍어도 됩니다.';
     $("#autowrap").style.display = "flex";
-    $("#side").classList.add("on");
-    document.body.classList.add("sideon");
+    // 차례는 renderSide 가 알아서 켠다 — 두 군데서 켜면 어긋난다
     document.body.classList.add("capturing");
     watchStart(); renderSide();
     return;
@@ -1607,14 +1655,20 @@ function addShot(auto) {
 
 /* ── 그리기 ── */
 function renderSide() {
-  if (!$("#side").classList.contains("on")) return;
+  // 단계가 있으면 차례를 켠다. 찍는 중에만 쓰는 물건이 아니다.
+  const 켤까 = state.steps.length > 0 || WATCH.on;
+  $("#side").classList.toggle("on", 켤까);
+  document.body.classList.toggle("sideon", 켤까);
+  $("#sidehead").textContent = WATCH.on ? "담기는 대로" : "차례";
+  if (!켤까) return;
   const box = $("#sidelist");
   box.innerHTML = "";
   let n = 0;
   const last = state.steps.length - 1;
   state.steps.forEach((s, i) => {
     const el = document.createElement("div");
-    el.className = "sit" + (i === last ? " fresh" : "");
+    el.className = "sit" + (i === last && WATCH.on ? " fresh" : "") + (s.sec ? " sec-row" : "");
+    el.dataset.at = i;
     if (s.sec) {
       el.innerHTML = '<span class="secmark">§</span><span class="t">' + (s.title || "섹션") + '</span>';
     } else {
@@ -1628,8 +1682,27 @@ function renderSide() {
     };
     box.appendChild(el);
   });
-  $("#side").scrollTop = $("#side").scrollHeight;   // 굴러야 하는 칸은 바깥이다
+  // 찍는 중에는 새로 담긴 것이 아래에 쌓이므로 끝을 보여 준다.
+  // 그냥 고치는 중이면 보던 자리를 그대로 둔다 — 스스로 움직이면 자리를 잃는다.
+  if (WATCH.on) $("#side").scrollTop = $("#side").scrollHeight;
+  markHere();
 }
+
+/* 지금 화면에 걸린 단계를 차례에 표시한다. */
+let hereTimer = null;
+function markHere() {
+  const 칸들 = document.querySelectorAll("#steps .step, #steps .sec");
+  if (!칸들.length) return;
+  let 자리 = 0;
+  const 기준 = 120;                       // 위 줄 아래 첫 줄
+  칸들.forEach((el, i) => { if (el.getBoundingClientRect().top <= 기준) 자리 = i; });
+  document.querySelectorAll("#sidelist .sit").forEach(el =>
+    el.classList.toggle("here", Number(el.dataset.at) === 자리));
+}
+addEventListener("scroll", () => {
+  if (hereTimer) return;
+  hereTimer = requestAnimationFrame(() => { hereTimer = null; markHere(); });
+}, { passive: true });
 
 /* 찍는 동안 사용자는 다른 창에서 일한다. 이 창은 안 본다.
    탭 제목이 유일하게 보이는 자리라, 담긴 개수를 거기에 적는다. */

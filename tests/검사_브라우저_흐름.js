@@ -76,9 +76,14 @@
   const 원폭 = window.innerWidth;
   for (const w of [1100, 880, 560]) {
     // 창 크기를 못 바꾸므로, 같은 조건을 만드는 규칙이 있는지 본다
+    // 그 숫자가 적혀 있는지가 아니라, 그 폭에서 **실제로 걸리는** 규칙이 있는지 본다.
     const 규칙 = [...document.styleSheets].flatMap(sh => { try { return [...sh.cssRules]; } catch (e) { return []; } })
-      .filter(r => r.conditionText && r.conditionText.includes("max-width: " + w + "px"));
-    ok("가로 " + w + "px 규칙이 있다", 규칙.length > 0, 규칙.length + "건");
+      .filter(r => {
+        const m = r.conditionText && r.conditionText.match(/max-width:\s*(\d+)px/);
+        return m && Number(m[1]) >= w;
+      });
+    ok("가로 " + w + "px 에서 걸리는 규칙이 있다", 규칙.length > 0,
+       규칙.length + "건 " + 규칙.slice(0, 3).map(r => r.conditionText).join(" · "));
   }
   const 지금 = 재보기();
   ok("가로로 밀리지 않는다", 지금.가로밀림 <= 1, 지금.가로밀림 + "px");
